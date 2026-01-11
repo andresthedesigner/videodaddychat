@@ -1,8 +1,8 @@
-# Zola Installation Guide
+# Video Daddy Chat Installation Guide
 
-Zola is a free, open-source AI chat app with multi-model support. This guide covers how to install and run Zola on different platforms, including Docker deployment options.
+Video Daddy Chat is an AI-powered assistant for YouTube creators, helping with video ideas, titles, scripts, SEO, and growth strategies. This guide covers how to install and run Video Daddy Chat on different platforms, including Docker deployment options.
 
-![Zola screenshot](./public/cover_zola.webp)
+Based on [Zola](https://github.com/ibelick/zola), the open-source AI chat interface.
 
 ## Prerequisites
 
@@ -81,7 +81,7 @@ Copy the generated value and add it to your `.env.local` file as the `CSRF_SECRE
 
 ### BYOK (Bring Your Own Key) Setup
 
-Zola supports BYOK functionality, allowing users to securely store and use their own API keys for AI providers. To enable this feature, you need to configure an encryption key for secure storage of user API keys.
+Video Daddy Chat supports BYOK functionality, allowing users to securely store and use their own API keys for AI providers. To enable this feature, you need to configure an encryption key for secure storage of user API keys.
 
 #### Generating an Encryption Key
 
@@ -299,7 +299,7 @@ Create the buckets `chat-attachments` and `avatars` in your Supabase dashboard:
 
 ## Ollama Setup (Local AI Models)
 
-Ollama allows you to run AI models locally on your machine. Zola has built-in support for Ollama with automatic model detection.
+Ollama allows you to run AI models locally on your machine. Video Daddy Chat has built-in support for Ollama with automatic model detection.
 
 ### Installing Ollama
 
@@ -342,13 +342,13 @@ ollama list
 ollama serve
 ```
 
-### Zola + Ollama Integration
+### Video Daddy Chat + Ollama Integration
 
-Zola automatically detects all models available in your Ollama installation. No additional configuration is needed!
+Video Daddy Chat automatically detects all models available in your Ollama installation. No additional configuration is needed!
 
 **Features:**
 
-- **Automatic Model Detection**: Zola scans your Ollama instance and makes all models available
+- **Automatic Model Detection**: Video Daddy Chat scans your Ollama instance and makes all models available
 - **Intelligent Categorization**: Models are automatically categorized by family (Llama, Gemma, Qwen, etc.)
 - **Smart Tagging**: Models get appropriate tags (local, open-source, coding, size-based)
 - **No Pro Restrictions**: All Ollama models are free to use
@@ -358,7 +358,7 @@ Zola automatically detects all models available in your Ollama installation. No 
 
 #### Default Configuration
 
-By default, Zola connects to Ollama at `http://localhost:11434`. This works for local installations.
+By default, Video Daddy Chat connects to Ollama at `http://localhost:11434`. This works for local installations.
 
 #### Custom Ollama URL
 
@@ -379,7 +379,7 @@ OLLAMA_BASE_URL=http://your-ollama-server:11434 npm run dev
 
 #### Settings UI
 
-Zola includes a settings interface where you can:
+Video Daddy Chat includes a settings interface where you can:
 
 - Enable/disable Ollama integration
 - Configure custom Ollama base URLs
@@ -390,7 +390,7 @@ Access settings through the gear icon in the interface.
 
 ### Docker with Ollama
 
-For a complete Docker setup with both Zola and Ollama:
+For a complete Docker setup with both Video Daddy Chat and Ollama:
 
 ```bash
 # Use the provided Docker Compose file
@@ -398,7 +398,7 @@ docker-compose -f docker-compose.ollama.yml up
 
 # Or manually with separate containers
 docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
-docker run -p 3000:3000 -e OLLAMA_BASE_URL=http://ollama:11434 zola
+docker run -p 3000:3000 -e OLLAMA_BASE_URL=http://ollama:11434 videodaddychat
 ```
 
 The `docker-compose.ollama.yml` file includes:
@@ -418,9 +418,9 @@ The `docker-compose.ollama.yml` file includes:
 
 #### Models not appearing
 
-1. Refresh the models list in Zola settings
+1. Refresh the models list in Video Daddy Chat settings
 2. Check Ollama has models: `ollama list`
-3. Restart Zola if models were added after startup
+3. Restart Video Daddy Chat if models were added after startup
 
 #### Performance optimization
 
@@ -477,8 +477,8 @@ DISABLE_OLLAMA=true
 
 ```bash
 # Clone the repository
-git clone https://github.com/ibelick/zola.git
-cd zola
+git clone https://github.com/andresgonzalez/videodaddychat.git
+cd videodaddychat
 
 # Install dependencies
 npm install
@@ -491,8 +491,8 @@ npm run dev
 
 ```bash
 # Clone the repository
-git clone https://github.com/ibelick/zola.git
-cd zola
+git clone https://github.com/andresgonzalez/videodaddychat.git
+cd videodaddychat
 
 # Install dependencies
 npm install
@@ -505,7 +505,7 @@ The application will be available at [http://localhost:3000](http://localhost:30
 
 ## Supabase Setup
 
-Zola requires Supabase for authentication and storage. Follow these steps to set up your Supabase project:
+Video Daddy Chat requires Supabase for authentication and storage. Follow these steps to set up your Supabase project:
 
 1. Create a new project at [Supabase](https://supabase.com)
 2. Set up the database schema using the SQL script below
@@ -590,7 +590,7 @@ Build and run the Docker container:
 
 ```bash
 # Build the Docker image
-docker build -t zola .
+docker build -t videodaddychat .
 
 # Run the container
 docker run -p 3000:3000 \
@@ -599,7 +599,7 @@ docker run -p 3000:3000 \
   -e SUPABASE_SERVICE_ROLE=your_supabase_service_role_key \
   -e OPENAI_API_KEY=your_openai_api_key \
   -e MISTRAL_API_KEY=your_mistral_api_key \
-  zola
+  videodaddychat
 ```
 
 ### Option 2: Docker Compose
@@ -610,7 +610,7 @@ Create a `docker-compose.yml` file in the root of your project:
 version: "3"
 
 services:
-  zola:
+  videodaddychat:
     build:
       context: .
       dockerfile: Dockerfile
@@ -641,10 +641,10 @@ docker-compose down
 
 ### Option 3: Docker Compose with Ollama (Recommended for Local AI)
 
-For a complete setup with both Zola and Ollama running locally, use the provided `docker-compose.ollama.yml`:
+For a complete setup with both Video Daddy Chat and Ollama running locally, use the provided `docker-compose.ollama.yml`:
 
 ```bash
-# Start both Zola and Ollama services
+# Start both Video Daddy Chat and Ollama services
 docker-compose -f docker-compose.ollama.yml up -d
 
 # View logs
@@ -659,10 +659,10 @@ This setup includes:
 - **Ollama service** with GPU support (if available)
 - **Automatic model pulling** (llama3.2:3b by default)
 - **Health checks** for both services
-- **Proper networking** between Zola and Ollama
+- **Proper networking** between Video Daddy Chat and Ollama
 - **Volume persistence** for Ollama models
 
-The Ollama service will be available at `http://localhost:11434` and Zola will automatically detect all available models.
+The Ollama service will be available at `http://localhost:11434` and Video Daddy Chat will automatically detect all available models.
 
 To customize which models are pulled, edit the `docker-compose.ollama.yml` file and modify the `OLLAMA_MODELS` environment variable:
 
@@ -675,7 +675,7 @@ environment:
 
 ### Deploy to Vercel
 
-The easiest way to deploy Zola is using Vercel:
+The easiest way to deploy Video Daddy Chat is using Vercel:
 
 1. Push your code to a Git repository (GitHub, GitLab, etc.)
 2. Import the project into Vercel
@@ -704,7 +704,7 @@ npm start
 
 ## Configuration Options
 
-You can customize various aspects of Zola by modifying the configuration files:
+You can customize various aspects of Video Daddy Chat by modifying the configuration files:
 
 - `app/lib/config.ts`: Configure AI models, daily message limits, etc.
 - `.env.local`: Set environment variables and API keys

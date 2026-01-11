@@ -2,25 +2,25 @@ export function AppInfoContent() {
   return (
     <div className="space-y-4">
       <p className="text-foreground leading-relaxed">
-        <span className="font-medium">Zola</span> is the open-source interface
-        for AI chat.
+        <span className="font-medium">Video Daddy Chat</span> is an AI-powered
+        assistant for YouTube creators.
+        <br />
+        Get help with video ideas, titles, scripts, SEO, and growth strategies.
         <br />
         Multi-model, BYOK-ready, and fully self-hostable.
         <br />
-        Use Claude, OpenAI, Gemini, local models, and more, all in one place.
-        <br />
       </p>
       <p className="text-foreground leading-relaxed">
-        The code is available on{" "}
+        Based on{" "}
         <a
           href="https://github.com/ibelick/zola"
           target="_blank"
           rel="noopener noreferrer"
           className="underline"
         >
-          GitHub
+          Zola
         </a>
-        .
+        , the open-source AI chat interface.
       </p>
     </div>
   )

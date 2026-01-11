@@ -26,9 +26,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Zola",
+  title: "Video Daddy Chat",
   description:
-    "Zola is the open-source interface for AI chat. Multi-model, BYOK-ready, and fully self-hostable. Use Claude, OpenAI, Gemini, local models, and more, all in one place.",
+    "Video Daddy Chat is an AI-powered assistant for YouTube creators. Get help with video ideas, titles, scripts, SEO, thumbnails, and growth strategies. Multi-model, BYOK-ready, and self-hostable.",
 }
 
 export default async function RootLayout({
@@ -46,7 +46,7 @@ export default async function RootLayout({
         <Script
           defer
           src="https://assets.onedollarstats.com/stonks.js"
-          {...(isDev ? { "data-debug": "zola.chat" } : {})}
+          {...(isDev ? { "data-debug": "videodaddy.chat" } : {})}
         />
       ) : null}
       <body

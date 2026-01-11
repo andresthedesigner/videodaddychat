@@ -1,5 +1,5 @@
 services:
-  zola:
+  videodaddychat:
     build:
       context: .
       dockerfile: Dockerfile

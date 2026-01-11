@@ -6,6 +6,9 @@ import {
   Notepad,
   PaintBrush,
   Sparkle,
+  VideoCamera,
+  TrendUp,
+  MagnifyingGlass,
 } from "@phosphor-icons/react/dist/ssr"
 
 export const NON_AUTH_DAILY_MESSAGE_LIMIT = 5
@@ -26,43 +29,55 @@ export const FREE_MODELS_IDS = [
 
 export const MODEL_DEFAULT = "gpt-4.1-nano"
 
-export const APP_NAME = "Zola"
-export const APP_DOMAIN = "https://zola.chat"
+export const APP_NAME = "Video Daddy"
+export const APP_DOMAIN = "https://videodaddy.chat"
 
 export const SUGGESTIONS = [
   {
-    label: "Summary",
-    highlight: "Summarize",
-    prompt: `Summarize`,
+    label: "Video Ideas",
+    highlight: "Generate",
+    prompt: `Generate video ideas`,
     items: [
-      "Summarize the French Revolution",
-      "Summarize the plot of Inception",
-      "Summarize World War II in 5 sentences",
-      "Summarize the benefits of meditation",
+      "Generate 10 viral video ideas for a tech review channel",
+      "Generate trending video topics in the gaming niche",
+      "Generate video ideas that will get high watch time",
+      "Generate collaboration video ideas for growing channels",
+    ],
+    icon: VideoCamera,
+  },
+  {
+    label: "Titles & SEO",
+    highlight: "Create",
+    prompt: `Create a title`,
+    items: [
+      "Create 5 click-worthy titles for my tutorial video",
+      "Create SEO-optimized tags for my cooking video",
+      "Create a compelling video description with keywords",
+      "Create A/B test title variations for my review video",
+    ],
+    icon: TrendUp,
+  },
+  {
+    label: "Scripts",
+    highlight: "Write",
+    prompt: `Write a script`,
+    items: [
+      "Write an engaging hook for my video intro",
+      "Write a script outline for a 10-minute tutorial",
+      "Write a compelling call-to-action for subscribers",
+      "Write transitions between my video segments",
     ],
     icon: Notepad,
   },
   {
-    label: "Code",
-    highlight: "Help me",
-    prompt: `Help me`,
+    label: "Thumbnails",
+    highlight: "Suggest",
+    prompt: `Suggest thumbnail`,
     items: [
-      "Help me write a function to reverse a string in JavaScript",
-      "Help me create a responsive navbar in HTML/CSS",
-      "Help me write a SQL query to find duplicate emails",
-      "Help me convert this Python function to JavaScript",
-    ],
-    icon: Code,
-  },
-  {
-    label: "Design",
-    highlight: "Design",
-    prompt: `Design`,
-    items: [
-      "Design a color palette for a tech blog",
-      "Design a UX checklist for mobile apps",
-      "Design 5 great font pairings for a landing page",
-      "Design better CTAs with useful tips",
+      "Suggest thumbnail concepts for my video about productivity",
+      "Suggest color schemes that perform well on YouTube",
+      "Suggest text overlay ideas for my thumbnail",
+      "Suggest ways to make my face pop in thumbnails",
     ],
     icon: PaintBrush,
   },
@@ -71,51 +86,55 @@ export const SUGGESTIONS = [
     highlight: "Research",
     prompt: `Research`,
     items: [
-      "Research the pros and cons of remote work",
-      "Research the differences between Apple Vision Pro and Meta Quest",
-      "Research best practices for password security",
-      "Research the latest trends in renewable energy",
+      "Research what makes videos go viral in my niche",
+      "Research the best posting times for YouTube",
+      "Research competitor channels and their strategies",
+      "Research trending topics I should cover this week",
     ],
-    icon: BookOpenText,
+    icon: MagnifyingGlass,
   },
   {
-    label: "Get inspired",
-    highlight: "Inspire me",
-    prompt: `Inspire me`,
+    label: "Growth",
+    highlight: "Help me",
+    prompt: `Help me grow`,
     items: [
-      "Inspire me with a beautiful quote about creativity",
-      "Inspire me with a writing prompt about solitude",
-      "Inspire me with a poetic way to start a newsletter",
-      "Inspire me by describing a peaceful morning in nature",
+      "Help me understand why my videos aren't getting views",
+      "Help me create a content calendar for consistent uploads",
+      "Help me improve my audience retention rate",
+      "Help me build a community around my channel",
     ],
-    icon: Sparkle,
+    icon: TrendUp,
   },
   {
-    label: "Think deeply",
-    highlight: "Reflect on",
-    prompt: `Reflect on`,
+    label: "Strategy",
+    highlight: "Plan",
+    prompt: `Plan`,
     items: [
-      "Reflect on why we fear uncertainty",
-      "Reflect on what makes a conversation meaningful",
-      "Reflect on the concept of time in a simple way",
-      "Reflect on what it means to live intentionally",
+      "Plan a content series that will hook viewers",
+      "Plan my monetization strategy as a new creator",
+      "Plan how to repurpose my content for Shorts",
+      "Plan a collaboration outreach strategy",
     ],
     icon: Brain,
   },
-  {
-    label: "Learn gently",
-    highlight: "Explain",
-    prompt: `Explain`,
-    items: [
-      "Explain quantum physics like I'm 10",
-      "Explain stoicism in simple terms",
-      "Explain how a neural network works",
-      "Explain the difference between AI and AGI",
-    ],
-    icon: Lightbulb,
-  },
 ]
 
-export const SYSTEM_PROMPT_DEFAULT = `You are Zola, a thoughtful and clear assistant. Your tone is calm, minimal, and human. You write with intention—never too much, never too little. You avoid clichés, speak simply, and offer helpful, grounded answers. When needed, you ask good questions. You don't try to impress—you aim to clarify. You may use metaphors if they bring clarity, but you stay sharp and sincere. You're here to help the user think clearly and move forward, not to overwhelm or overperform.`
+export const SYSTEM_PROMPT_DEFAULT = `You are Video Daddy, an expert AI assistant for YouTube creators. Your mission is to help creators make better videos, grow their channels, and build engaged audiences.
+
+You have deep knowledge of:
+- YouTube algorithm and SEO best practices
+- Video production techniques and storytelling
+- Thumbnail design principles and click-through rates
+- Title optimization and A/B testing strategies
+- Audience retention and engagement tactics
+- Content strategy and niche development
+- Analytics interpretation and growth metrics
+- Monetization strategies and brand deals
+
+Your tone is encouraging, practical, and action-oriented. You give specific, actionable advice rather than generic tips. When reviewing content, you're honest but constructive. You understand the challenges creators face and provide realistic guidance.
+
+When helping with titles, thumbnails, or hooks, you consider what drives clicks AND delivers on promises (no clickbait that disappoints). You help creators build sustainable channels, not just chase viral moments.
+
+Always ask clarifying questions when needed to give the best advice for their specific situation, niche, and audience.`
 
 export const MESSAGE_MAX_LENGTH = 10000

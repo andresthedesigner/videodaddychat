@@ -135,17 +135,17 @@ export function AppSidebar() {
           href="https://github.com/ibelick/zola"
           className="hover:bg-muted flex items-center gap-2 rounded-md p-2"
           target="_blank"
-          aria-label="Star the repo on GitHub"
+          aria-label="Built on Zola - star the repo on GitHub"
         >
           <div className="rounded-full border p-1">
             <GithubLogo className="size-4" />
           </div>
           <div className="flex flex-col">
             <div className="text-sidebar-foreground text-sm font-medium">
-              Zola is open source
+              Built on Zola
             </div>
             <div className="text-sidebar-foreground/70 text-xs">
-              Star the repo on GitHub!
+              Star the original repo!
             </div>
           </div>
         </a>
