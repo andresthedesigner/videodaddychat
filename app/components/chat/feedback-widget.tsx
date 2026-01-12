@@ -16,7 +16,7 @@ const TRANSITION_POPOVER = {
   type: "spring",
   bounce: 0.1,
   duration: 0.3,
-}
+} as const
 
 type FeedbackWidgetProps = {
   authUserId?: string
