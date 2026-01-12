@@ -1,5 +1,5 @@
+import type { SupabaseClientType } from "@/app/types/api.types"
 import { toast } from "@/components/ui/toast"
-import { SupabaseClient } from "@supabase/supabase-js"
 import * as fileType from "file-type"
 import { DAILY_FILE_UPLOAD_LIMIT } from "./config"
 import { createClient } from "./supabase/client"
@@ -52,7 +52,7 @@ export async function validateFile(
 }
 
 export async function uploadFile(
-  supabase: SupabaseClient,
+  supabase: SupabaseClientType,
   file: File
 ): Promise<string> {
   const fileExt = file.name.split(".").pop()
