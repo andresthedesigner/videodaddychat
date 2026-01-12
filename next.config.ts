@@ -1,14 +1,7 @@
-import bundleAnalyzer from "@next/bundle-analyzer"
 import type { NextConfig } from "next"
 
-// Configure bundle analyzer and wrap the Next config factory
-const withBundleAnalyzer = bundleAnalyzer({
-  enabled: process.env.ANALYZE === "true",
-})
-
-const nextConfig: NextConfig = withBundleAnalyzer({
+const nextConfig: NextConfig = {
   output: "standalone",
-  turbopack: {},
   experimental: {
     optimizePackageImports: ["@phosphor-icons/react"],
   },
@@ -23,6 +16,6 @@ const nextConfig: NextConfig = withBundleAnalyzer({
       },
     ],
   },
-})
+}
 
 export default nextConfig
