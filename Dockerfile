@@ -1,15 +1,15 @@
-# Base Node.js image
-FROM node:18-alpine AS base
+# Base Bun image
+FROM oven/bun:1 AS base
 
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package.json bun.lock ./
 
 # Install dependencies (including devDependencies for build)
-RUN npm ci && npm cache clean --force
+RUN bun install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -25,7 +25,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build the application
-RUN npm run build
+RUN bun run build
 
 # Verify standalone build was created
 RUN ls -la .next/ && \
@@ -35,7 +35,8 @@ RUN ls -la .next/ && \
     fi
 
 # Production image, copy all the files and run next
-FROM base AS runner
+# Use Node.js for runtime as Next.js standalone output is optimized for Node
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 # Set environment variables

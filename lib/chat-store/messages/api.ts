@@ -1,7 +1,10 @@
+import type { Tables } from "@/app/types/database.types"
 import { createClient } from "@/lib/supabase/client"
 import { isSupabaseEnabled } from "@/lib/supabase/config"
 import type { Message as MessageAISDK } from "ai"
 import { readFromIndexedDB, writeToIndexedDB } from "../persist"
+
+type MessageRow = Tables<"messages">
 
 export interface ExtendedMessageAISDK extends MessageAISDK {
   message_group_id?: string
@@ -33,10 +36,11 @@ export async function getMessagesFromDb(
     return []
   }
 
-  return data.map((message) => ({
+  return data.map((message: Pick<MessageRow, "id" | "content" | "role" | "experimental_attachments" | "created_at" | "parts" | "message_group_id" | "model">) => ({
     ...message,
     id: String(message.id),
     content: message.content ?? "",
+    role: message.role,
     createdAt: new Date(message.created_at || ""),
     parts: (message?.parts as MessageAISDK["parts"]) || undefined,
     message_group_id: message.message_group_id,

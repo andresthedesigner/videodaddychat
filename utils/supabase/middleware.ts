@@ -1,6 +1,10 @@
 import { isSupabaseEnabled } from "@/lib/supabase/config"
 import { createServerClient } from "@supabase/ssr"
+import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies"
 import { NextResponse, type NextRequest } from "next/server"
+
+type CookieOptions = Partial<ResponseCookie>
+type CookieToSet = { name: string; value: string; options: CookieOptions }
 
 export async function updateSession(request: NextRequest) {
   if (!isSupabaseEnabled) {
@@ -21,7 +25,7 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: CookieToSet[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )

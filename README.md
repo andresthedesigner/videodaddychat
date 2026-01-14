@@ -33,9 +33,9 @@ Built on top of [Zola](https://github.com/ibelick/zola), the open-source chat in
 ```bash
 git clone https://github.com/andresthedesigner/videodaddychat.git
 cd videodaddychat
-npm install
+bun install
 echo "OPENAI_API_KEY=your-key" > .env.local
-npm run dev
+bun dev
 ```
 
 ### Option 2: With Ollama (Local)
@@ -48,8 +48,8 @@ ollama pull llama3.2  # or any model you prefer
 # Clone and run Video Daddy Chat
 git clone https://github.com/andresthedesigner/videodaddychat.git
 cd videodaddychat
-npm install
-npm run dev
+bun install
+bun dev
 ```
 
 Video Daddy Chat will automatically detect your local Ollama models!

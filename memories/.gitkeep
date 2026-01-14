@@ -1,0 +1,17 @@
+# Memories Directory
+
+This directory is for persistent agentic memory beyond NOTES.md.
+Use for complex projects requiring organized memory categories.
+
+Suggested structure:
+- architecture-decisions.md
+- debugging-sessions.md
+- performance-notes.md
+- security-findings.md
+
+Files in this directory are:
+- ⚠️ Optional to commit (team preference)
+- 🔒 May contain session-specific information
+- 📝 Updated by AI agents during development
+
+See AI_CONTEXT_SETUP_GUIDE.md for memory patterns.
