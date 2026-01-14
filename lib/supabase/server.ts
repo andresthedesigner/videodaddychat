@@ -1,22 +1,28 @@
-import { Database } from "@/app/types/database.types"
+import type { Database } from "@/app/types/database.types"
 import { createServerClient } from "@supabase/ssr"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies"
 import { cookies } from "next/headers"
 import { isSupabaseEnabled } from "./config"
 
-export const createClient = async () => {
+type CookieOptions = Partial<ResponseCookie>
+type CookieToSet = { name: string; value: string; options: CookieOptions }
+
+export const createClient = async (): Promise<SupabaseClient<Database> | null> => {
   if (!isSupabaseEnabled) {
     return null
   }
 
   const cookieStore = await cookies()
 
-  return createServerClient<Database>(
+  // Cast to properly typed client (workaround for @supabase/ssr type inference issues)
+  const client = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
+        setAll: (cookiesToSet: CookieToSet[]) => {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options)
@@ -28,4 +34,6 @@ export const createClient = async () => {
       },
     }
   )
+
+  return client as unknown as SupabaseClient<Database>
 }

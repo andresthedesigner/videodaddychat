@@ -5,7 +5,7 @@ import useClickOutside from '@/hooks/useClickOutside';
 import { ArrowLeft, Search, User } from 'lucide-react';
 
 const transition = {
-  type: 'spring',
+  type: 'spring' as const,
   bounce: 0.1,
   duration: 0.2,
 };

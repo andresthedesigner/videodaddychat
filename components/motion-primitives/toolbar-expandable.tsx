@@ -8,7 +8,7 @@ import useClickOutside from '@/hooks/useClickOutside';
 import { Folder, MessageCircle, User, WalletCards } from 'lucide-react';
 
 const transition = {
-  type: 'spring',
+  type: 'spring' as const,
   bounce: 0.1,
   duration: 0.25,
 };
