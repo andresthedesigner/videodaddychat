@@ -53,6 +53,12 @@ Living document for tracking current work and next steps.
   - [x] `lib/ai/CLAUDE.md`
   - [x] `components/CLAUDE.md`
   - [x] `hooks/CLAUDE.md`
+- [x] Implement Development Workflow
+  - [x] Create `docs/workflows.md` with four-phase cycle, TDD, extended thinking
+  - [x] Create workflow commands: `/research`, `/plan`, `/tdd`, `/verify`, `/commit`
+  - [x] Update `CLAUDE.md` with workflow references
+  - [x] Update `AGENTS.md` with workflow overview
+  - [x] Create `docs/workflow-examples.md` with practical examples
 
 ### 🔄 In Progress
 - [ ] Set up Convex project

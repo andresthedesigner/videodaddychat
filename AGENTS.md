@@ -25,6 +25,24 @@ bun run build         # Production build
 bun run test          # Vitest (critical paths)
 ```
 
+## Development Workflow
+
+This project follows a **four-phase coding cycle**:
+
+1. **Research** → Gather context, read files, understand patterns
+2. **Plan** → Create detailed plan, use `ultrathink` for complex problems
+3. **Code & Verify** → Implement step-by-step, verify after each step
+4. **Commit** → Commit incrementally with conventional messages
+
+**Workflow Commands:**
+- `/research` - Start research phase
+- `/plan` - Create implementation plan
+- `/tdd` - Test-Driven Development workflow
+- `/verify` - Run all verification checks
+- `/commit` - Commit with conventional message
+
+See `docs/workflows.md` for complete workflow documentation.
+
 ## Directory Structure
 
 ```

@@ -57,8 +57,49 @@ When you need additional context, use the `@` import syntax:
 @AGENTS.md                           # Project overview, commands, permissions
 @docs/agents-research.md             # Tech stack decisions, sub-agent architecture
 @docs/youtube-transcript-evaluation.md # YouTube API research
+@docs/workflows.md                   # Development workflows (four-phase cycle, TDD)
 @lib/config.ts                       # Centralized configuration constants
 ```
+
+## Development Workflow
+
+This project follows Anthropic's four-phase coding cycle. See `@docs/workflows.md` for complete details.
+
+### Quick Reference
+
+**Phase 1: Research** → Gather context, read files, understand patterns
+**Phase 2: Plan** → Create detailed plan, use `ultrathink` for complex problems
+**Phase 3: Code & Verify** → Implement step-by-step, verify after each step
+**Phase 4: Commit** → Commit incrementally with clear messages
+
+### Extended Thinking
+
+Use extended thinking (`ultrathink`) for:
+- Architectural decisions
+- Complex debugging sessions
+- Security analysis
+- Performance optimization
+
+Toggle "Thinking On/Off" in Claude Code, or use `ultrathink:` prefix in prompts.
+
+### TDD Workflow
+
+For critical paths (auth, data transforms, rate limiting):
+1. Write tests first
+2. Confirm tests fail
+3. Commit tests
+4. Implement to pass tests
+5. Iterate until all pass
+
+### Context Management
+
+When sessions get long:
+- Summarize older messages (keep last 10)
+- Write discoveries to `NOTES.md`
+- Reference `@` files instead of pasting content
+- Use context compaction strategies
+
+See `@docs/workflows.md` for detailed workflows and examples.
 
 ## Sub-Agent Architecture (Future)
 
