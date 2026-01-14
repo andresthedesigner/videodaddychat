@@ -51,3 +51,12 @@ next-env.d.ts
 bun-debug.log*
 
 /.cursor
+
+# Claude Code local settings (personal preferences)
+.claude/settings.local.json
+
+# Optional: uncomment to ignore memories directory
+# memories/
+
+# Claude Code personal settings
+.claude/settings.local.json

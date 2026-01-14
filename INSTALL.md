@@ -6,8 +6,7 @@ Based on [Zola](https://github.com/ibelick/zola), the open-source AI chat interf
 
 ## Prerequisites
 
-- Node.js 18.x or later
-- npm or yarn
+- [Bun](https://bun.sh) 1.0 or later (recommended) or Node.js 18.x or later
 - Git
 - Supabase account (for auth and storage)
 - API keys for supported AI models (OpenAI, Mistral, etc.) OR Ollama for local models
@@ -374,7 +373,7 @@ OLLAMA_BASE_URL=http://192.168.1.100:11434
 You can also set the Ollama URL at runtime:
 
 ```bash
-OLLAMA_BASE_URL=http://your-ollama-server:11434 npm run dev
+OLLAMA_BASE_URL=http://your-ollama-server:11434 bun dev
 ```
 
 #### Settings UI
@@ -481,10 +480,10 @@ git clone https://github.com/andresgonzalez/videodaddychat.git
 cd videodaddychat
 
 # Install dependencies
-npm install
+bun install
 
 # Run the development server
-npm run dev
+bun dev
 ```
 
 ### Windows
@@ -495,10 +494,10 @@ git clone https://github.com/andresgonzalez/videodaddychat.git
 cd videodaddychat
 
 # Install dependencies
-npm install
+bun install
 
 # Run the development server
-npm run dev
+bun dev
 ```
 
 The application will be available at [http://localhost:3000](http://localhost:3000).
@@ -520,18 +519,18 @@ Video Daddy Chat requires Supabase for authentication and storage. Follow these 
 Create a `Dockerfile` in the root of your project if that doesnt exist:
 
 ```dockerfile
-# Base Node.js image
-FROM node:18-alpine AS base
+# Base Bun image
+FROM oven/bun:1 AS base
 
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package.json bun.lock ./
 
-# Install dependencies with clean slate
-RUN npm ci
+# Install dependencies
+RUN bun install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -544,25 +543,23 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set Next.js telemetry to disabled
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build the application
-RUN npm run build
+RUN bun run build
 
 # Production image, copy all the files and run next
-FROM base AS runner
+# Use Node.js for runtime as Next.js standalone output is optimized for Node
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 # Set environment variables
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Create a non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Set the correct permission for prerender cache
-RUN mkdir -p .next/cache && chown -R nextjs:nodejs .next/cache
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
 # Copy necessary files for production
 COPY --from=builder /app/public ./public
@@ -576,11 +573,12 @@ USER nextjs
 EXPOSE 3000
 
 # Set environment variable for port
-ENV PORT 3000
-ENV HOSTNAME 0.0.0.0
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 # Health check to verify container is running properly
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
 
 # Start the application
 CMD ["node", "server.js"]
@@ -684,7 +682,7 @@ The easiest way to deploy Video Daddy Chat is using Vercel:
 
 ```bash
 # Install Vercel CLI
-npm install -g vercel
+bun add -g vercel
 
 # Deploy
 vercel
@@ -696,10 +694,10 @@ For a self-hosted production environment, you'll need to build the application a
 
 ```bash
 # Build the application
-npm run build
+bun run build
 
 # Start the production server
-npm start
+bun start
 ```
 
 ## Configuration Options

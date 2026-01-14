@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run dev)",
+      "Bash(bun run build)",
+      "Bash(bun run lint)",
+      "Bash(bun run typecheck)",
+      "Bash(bun run test)",
+      "Bash(bun run test:*)",
+      "Bash(tsc --noEmit)",
+      "Bash(tsc --noEmit *)",
+      "Read(./app/**)",
+      "Read(./lib/**)",
+      "Read(./components/**)",
+      "Read(./hooks/**)",
+      "Read(./context/**)",
+      "Read(./docs/**)",
+      "Read(./*.md)",
+      "Read(./*.json)",
+      "Read(./*.ts)",
+      "Read(./*.mjs)",
+      "Write(./app/**)",
+      "Write(./lib/**)",
+      "Write(./components/**)",
+      "Write(./hooks/**)",
+      "Write(./context/**)",
+      "Write(./docs/**)",
+      "Write(./NOTES.md)",
+      "Write(./plan.md)"
+    ],
+    "deny": [
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(rm -rf *)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Write(./.env)",
+      "Write(./.env.*)",
+      "Write(./secrets/**)"
+    ]
+  },
+  "defaultMode": "default",
+  "model": "claude-sonnet-4-5-20250929"
+}

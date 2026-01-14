@@ -2,12 +2,13 @@
   "name": "videodaddychat",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "bun@1.3.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.10",
@@ -50,6 +51,7 @@
     "@tanstack/react-query": "^5.80.6",
     "ai": "^4.3.13",
     "class-variance-authority": "^0.7.1",
+    "claude-code": "^1.0.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
