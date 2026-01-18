@@ -19,7 +19,7 @@ services:
       retries: 3
       start_period: 30s
 
-  # Video Daddy Chat application
+  # vid0 application
   videodaddychat:
     build: .
     container_name: videodaddychat-app

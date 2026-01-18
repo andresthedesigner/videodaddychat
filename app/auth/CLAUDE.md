@@ -1,6 +1,6 @@
 # Auth Module — Claude Context
 
-This directory handles authentication for Video Daddy Chat.
+This directory handles authentication for vid0.
 
 > ⚠️ **Migration Pending**: Currently using Supabase Auth, migrating to Clerk.
 > See `@docs/agents-research.md` for migration rationale.

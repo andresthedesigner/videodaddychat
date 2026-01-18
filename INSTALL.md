@@ -1,6 +1,6 @@
-# Video Daddy Chat Installation Guide
+# vid0 Installation Guide
 
-Video Daddy Chat is an AI-powered assistant for YouTube creators, helping with video ideas, titles, scripts, SEO, and growth strategies. This guide covers how to install and run Video Daddy Chat on different platforms, including Docker deployment options.
+vid0 is an AI-powered assistant for YouTube creators, helping with video ideas, titles, scripts, SEO, and growth strategies. This guide covers how to install and run vid0 on different platforms, including Docker deployment options.
 
 Based on [Zola](https://github.com/ibelick/zola), the open-source AI chat interface.
 
@@ -80,7 +80,7 @@ Copy the generated value and add it to your `.env.local` file as the `CSRF_SECRE
 
 ### BYOK (Bring Your Own Key) Setup
 
-Video Daddy Chat supports BYOK functionality, allowing users to securely store and use their own API keys for AI providers. To enable this feature, you need to configure an encryption key for secure storage of user API keys.
+vid0 supports BYOK functionality, allowing users to securely store and use their own API keys for AI providers. To enable this feature, you need to configure an encryption key for secure storage of user API keys.
 
 #### Generating an Encryption Key
 
@@ -298,7 +298,7 @@ Create the buckets `chat-attachments` and `avatars` in your Supabase dashboard:
 
 ## Ollama Setup (Local AI Models)
 
-Ollama allows you to run AI models locally on your machine. Video Daddy Chat has built-in support for Ollama with automatic model detection.
+Ollama allows you to run AI models locally on your machine. vid0 has built-in support for Ollama with automatic model detection.
 
 ### Installing Ollama
 
@@ -341,13 +341,13 @@ ollama list
 ollama serve
 ```
 
-### Video Daddy Chat + Ollama Integration
+### vid0 + Ollama Integration
 
-Video Daddy Chat automatically detects all models available in your Ollama installation. No additional configuration is needed!
+vid0 automatically detects all models available in your Ollama installation. No additional configuration is needed!
 
 **Features:**
 
-- **Automatic Model Detection**: Video Daddy Chat scans your Ollama instance and makes all models available
+- **Automatic Model Detection**: vid0 scans your Ollama instance and makes all models available
 - **Intelligent Categorization**: Models are automatically categorized by family (Llama, Gemma, Qwen, etc.)
 - **Smart Tagging**: Models get appropriate tags (local, open-source, coding, size-based)
 - **No Pro Restrictions**: All Ollama models are free to use
@@ -357,7 +357,7 @@ Video Daddy Chat automatically detects all models available in your Ollama insta
 
 #### Default Configuration
 
-By default, Video Daddy Chat connects to Ollama at `http://localhost:11434`. This works for local installations.
+By default, vid0 connects to Ollama at `http://localhost:11434`. This works for local installations.
 
 #### Custom Ollama URL
 
@@ -378,7 +378,7 @@ OLLAMA_BASE_URL=http://your-ollama-server:11434 bun dev
 
 #### Settings UI
 
-Video Daddy Chat includes a settings interface where you can:
+vid0 includes a settings interface where you can:
 
 - Enable/disable Ollama integration
 - Configure custom Ollama base URLs
@@ -389,7 +389,7 @@ Access settings through the gear icon in the interface.
 
 ### Docker with Ollama
 
-For a complete Docker setup with both Video Daddy Chat and Ollama:
+For a complete Docker setup with both vid0 and Ollama:
 
 ```bash
 # Use the provided Docker Compose file
@@ -417,9 +417,9 @@ The `docker-compose.ollama.yml` file includes:
 
 #### Models not appearing
 
-1. Refresh the models list in Video Daddy Chat settings
+1. Refresh the models list in vid0 settings
 2. Check Ollama has models: `ollama list`
-3. Restart Video Daddy Chat if models were added after startup
+3. Restart vid0 if models were added after startup
 
 #### Performance optimization
 
@@ -504,7 +504,7 @@ The application will be available at [http://localhost:3000](http://localhost:30
 
 ## Supabase Setup
 
-Video Daddy Chat requires Supabase for authentication and storage. Follow these steps to set up your Supabase project:
+vid0 requires Supabase for authentication and storage. Follow these steps to set up your Supabase project:
 
 1. Create a new project at [Supabase](https://supabase.com)
 2. Set up the database schema using the SQL script below
@@ -639,10 +639,10 @@ docker-compose down
 
 ### Option 3: Docker Compose with Ollama (Recommended for Local AI)
 
-For a complete setup with both Video Daddy Chat and Ollama running locally, use the provided `docker-compose.ollama.yml`:
+For a complete setup with both vid0 and Ollama running locally, use the provided `docker-compose.ollama.yml`:
 
 ```bash
-# Start both Video Daddy Chat and Ollama services
+# Start both vid0 and Ollama services
 docker-compose -f docker-compose.ollama.yml up -d
 
 # View logs
@@ -657,10 +657,10 @@ This setup includes:
 - **Ollama service** with GPU support (if available)
 - **Automatic model pulling** (llama3.2:3b by default)
 - **Health checks** for both services
-- **Proper networking** between Video Daddy Chat and Ollama
+- **Proper networking** between vid0 and Ollama
 - **Volume persistence** for Ollama models
 
-The Ollama service will be available at `http://localhost:11434` and Video Daddy Chat will automatically detect all available models.
+The Ollama service will be available at `http://localhost:11434` and vid0 will automatically detect all available models.
 
 To customize which models are pulled, edit the `docker-compose.ollama.yml` file and modify the `OLLAMA_MODELS` environment variable:
 
@@ -673,7 +673,7 @@ environment:
 
 ### Deploy to Vercel
 
-The easiest way to deploy Video Daddy Chat is using Vercel:
+The easiest way to deploy vid0 is using Vercel:
 
 1. Push your code to a Git repository (GitHub, GitLab, etc.)
 2. Import the project into Vercel
@@ -702,7 +702,7 @@ bun start
 
 ## Configuration Options
 
-You can customize various aspects of Video Daddy Chat by modifying the configuration files:
+You can customize various aspects of vid0 by modifying the configuration files:
 
 - `app/lib/config.ts`: Configure AI models, daily message limits, etc.
 - `.env.local`: Set environment variables and API keys

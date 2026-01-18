@@ -1,6 +1,6 @@
 # Claude-Specific Context
 
-This file contains Claude-specific behaviors, preferences, and context for the Video Daddy Chat project.
+This file contains Claude-specific behaviors, preferences, and context for the vid0 project.
 
 > See `@AGENTS.md` for universal guidelines that apply to all AI agents.
 

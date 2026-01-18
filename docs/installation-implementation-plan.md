@@ -1,4 +1,4 @@
-# Video Daddy Chat - Installation & Implementation Plan
+# vid0 - Installation & Implementation Plan
 
 > **Purpose:** Prioritized roadmap to complete all remaining installation and implementation tasks
 >
@@ -204,7 +204,7 @@ mv lib/user-store/api.ts lib/user/api.ts
 
 ### 2.1 YouTube Transcript Service ⏱️ 2-3 hours
 
-**Priority:** 🔴 Critical (Core feature for Video Daddy)
+**Priority:** 🔴 Critical (Core feature for vid0)
 
 #### Step 1: Install dependency
 
@@ -1173,7 +1173,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Chat functionality', () => {
   test('should load homepage', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveTitle(/Video Daddy/);
+    await expect(page).toHaveTitle(/vid0/);
   });
 
   test('should show login page for unauthenticated users', async ({ page }) => {

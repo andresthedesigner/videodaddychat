@@ -32,7 +32,7 @@
 
 ### Core Purpose
 
-**Video Daddy Chat** (placeholder name) is a chat-based platform that helps content creators make better YouTube videos through data-driven AI recommendations.
+**vid0** (placeholder name) is a chat-based platform that helps content creators make better YouTube videos through data-driven AI recommendations.
 
 ### Problem Statement
 
@@ -425,7 +425,7 @@ Flowglad's Core Platform **uses Clerk as its primary authentication provider**:
 
 ```
 ┌─────────────────────────────────────────┐
-│           VIDEO DADDY CHAT               │
+│                  vid0                    │
 ├─────────────────────────────────────────┤
 │                                          │
 │  ┌──────────┐  ┌──────────┐  ┌────────┐ │
@@ -671,7 +671,7 @@ Both VidIQ and TubeBuddy are YouTube partners but do not expose APIs for third-p
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    VIDEO DADDY CHAT                          │
+│                          vid0                                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌─────────────────┐    ┌─────────────────┐                │
@@ -955,7 +955,7 @@ From Anthropic's context engineering research:
 - **Better results** - Focused prompts outperform generic ones
 - **Token efficiency** - Only relevant context per agent
 
-#### Proposed Sub-Agent Architecture for Video Daddy Chat
+#### Proposed Sub-Agent Architecture for vid0
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -1753,7 +1753,7 @@ Based on research, the AGENTS.md file should include:
 ### Proposed Structure
 
 ```markdown
-# Video Daddy Chat
+# vid0
 
 ## Project Overview
 - Purpose and vision
@@ -1898,7 +1898,7 @@ Based on research, the AGENTS.md file should include:
 
 ```
 ┌────────────────────────────────────────────────────┐
-│              VIDEO DADDY CHAT STACK                 │
+│                  vid0 STACK                          │
 ├────────────────────────────────────────────────────┤
 │                                                     │
 │  Next.js 16 + React 19 + TypeScript                │

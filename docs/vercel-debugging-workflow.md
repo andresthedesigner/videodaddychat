@@ -1,6 +1,6 @@
 # Vercel Deployment Debugging Workflow
 
-A comprehensive guide for systematically debugging and resolving Vercel deployment issues for the Video Daddy Chat project.
+A comprehensive guide for systematically debugging and resolving Vercel deployment issues for the vid0 project.
 
 ## Table of Contents
 

@@ -1,4 +1,4 @@
-# Video Daddy Chat
+# vid0
 
 AI-powered chat platform for YouTube content creators. Data-driven recommendations for scripts, titles, and thumbnails.
 

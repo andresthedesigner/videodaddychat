@@ -1,6 +1,6 @@
 # Project Specification
 
-Video Daddy Chat — AI-powered platform for YouTube content creators.
+vid0 — AI-powered platform for YouTube content creators.
 
 ---
 
