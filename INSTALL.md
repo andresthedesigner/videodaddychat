@@ -397,7 +397,7 @@ docker-compose -f docker-compose.ollama.yml up
 
 # Or manually with separate containers
 docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
-docker run -p 3000:3000 -e OLLAMA_BASE_URL=http://ollama:11434 videodaddychat
+docker run -p 3000:3000 -e OLLAMA_BASE_URL=http://ollama:11434 vid0
 ```
 
 The `docker-compose.ollama.yml` file includes:
@@ -476,8 +476,8 @@ DISABLE_OLLAMA=true
 
 ```bash
 # Clone the repository
-git clone https://github.com/andresgonzalez/videodaddychat.git
-cd videodaddychat
+git clone https://github.com/batmn-dev/vid0.git
+cd vid0
 
 # Install dependencies
 bun install
@@ -490,8 +490,8 @@ bun dev
 
 ```bash
 # Clone the repository
-git clone https://github.com/andresgonzalez/videodaddychat.git
-cd videodaddychat
+git clone https://github.com/batmn-dev/vid0.git
+cd vid0
 
 # Install dependencies
 bun install
@@ -588,7 +588,7 @@ Build and run the Docker container:
 
 ```bash
 # Build the Docker image
-docker build -t videodaddychat .
+docker build -t vid0 .
 
 # Run the container
 docker run -p 3000:3000 \
@@ -597,7 +597,7 @@ docker run -p 3000:3000 \
   -e SUPABASE_SERVICE_ROLE=your_supabase_service_role_key \
   -e OPENAI_API_KEY=your_openai_api_key \
   -e MISTRAL_API_KEY=your_mistral_api_key \
-  videodaddychat
+  vid0
 ```
 
 ### Option 2: Docker Compose
@@ -608,7 +608,7 @@ Create a `docker-compose.yml` file in the root of your project:
 version: "3"
 
 services:
-  videodaddychat:
+  vid0:
     build:
       context: .
       dockerfile: Dockerfile

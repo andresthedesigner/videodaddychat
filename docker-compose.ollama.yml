@@ -4,7 +4,7 @@ services:
   # Ollama service for local LLM hosting
   ollama:
     image: ollama/ollama:latest
-    container_name: videodaddychat-ollama
+    container_name: vid0-ollama
     ports:
       - "11434:11434"
     volumes:
@@ -20,9 +20,9 @@ services:
       start_period: 30s
 
   # vid0 application
-  videodaddychat:
+  vid0:
     build: .
-    container_name: videodaddychat-app
+    container_name: vid0-app
     ports:
       - "3000:3000"
     environment:

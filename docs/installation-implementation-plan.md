@@ -1095,7 +1095,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <>
       <HighlightInit
         projectId={process.env.NEXT_PUBLIC_HIGHLIGHT_PROJECT_ID!}
-        serviceName="videodaddychat"
+        serviceName="vid0"
         tracingOrigins
         networkRecording={{
           enabled: true,
@@ -1726,8 +1726,8 @@ npx supabase gen types typescript --project-id YOUR_PROJECT_ID > app/types/datab
 docker-compose -f docker-compose.ollama.yml up
 
 # Production build
-docker build -t videodaddychat .
-docker run -p 3000:3000 videodaddychat
+docker build -t vid0 .
+docker run -p 3000:3000 vid0
 ```
 
 ---

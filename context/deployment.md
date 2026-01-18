@@ -258,10 +258,10 @@ services:
 
 ```bash
 # Build image
-docker build -t videodaddychat .
+docker build -t vid0 .
 
 # Run container
-docker run -p 3000:3000 --env-file .env.local videodaddychat
+docker run -p 3000:3000 --env-file .env.local vid0
 
 # Or with docker-compose
 docker-compose up -d
