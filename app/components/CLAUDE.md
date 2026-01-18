@@ -1,6 +1,6 @@
 # App Components — Claude Context
 
-This directory contains app-specific React components for Video Daddy Chat.
+This directory contains app-specific React components for vid0.
 
 > See `@components/CLAUDE.md` for Shadcn UI primitives.
 > Gold standard: `app/components/chat/chat.tsx`

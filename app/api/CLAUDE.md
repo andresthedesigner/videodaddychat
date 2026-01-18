@@ -1,6 +1,6 @@
 # API Routes — Claude Context
 
-This directory contains Next.js API routes for the Video Daddy Chat backend.
+This directory contains Next.js API routes for the vid0 backend.
 
 > See `@AGENTS.md` for universal guidelines. Gold standard: `app/api/chat/route.ts`
 

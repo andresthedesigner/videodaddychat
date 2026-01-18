@@ -58,7 +58,7 @@ export function DialogPublish() {
   const shareOnX = () => {
     setOpenDialog(false)
 
-    const X_TEXT = `Check out this public page I created with Video Daddy! ${publicLink}`
+    const X_TEXT = `Check out this public page I created with vid0! ${publicLink}`
     window.open(`https://x.com/intent/tweet?text=${X_TEXT}`, "_blank")
   }
 

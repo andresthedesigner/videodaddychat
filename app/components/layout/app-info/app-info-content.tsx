@@ -2,7 +2,7 @@ export function AppInfoContent() {
   return (
     <div className="space-y-4">
       <p className="text-foreground leading-relaxed">
-        <span className="font-medium">Video Daddy Chat</span> is an AI-powered
+        <span className="font-medium">vid0</span> is an AI-powered
         assistant for YouTube creators.
         <br />
         Get help with video ideas, titles, scripts, SEO, and growth strategies.

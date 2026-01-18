@@ -29,7 +29,7 @@ export const FREE_MODELS_IDS = [
 
 export const MODEL_DEFAULT = "gpt-4.1-nano"
 
-export const APP_NAME = "Video Daddy"
+export const APP_NAME = "vid0"
 export const APP_DOMAIN = "https://videodaddy.chat"
 
 export const SUGGESTIONS = [
@@ -119,7 +119,7 @@ export const SUGGESTIONS = [
   },
 ]
 
-export const SYSTEM_PROMPT_DEFAULT = `You are Video Daddy, an expert AI assistant for YouTube creators. Your mission is to help creators make better videos, grow their channels, and build engaged audiences.
+export const SYSTEM_PROMPT_DEFAULT = `You are vid0, an expert AI assistant for YouTube creators. Your mission is to help creators make better videos, grow their channels, and build engaged audiences.
 
 You have deep knowledge of:
 - YouTube algorithm and SEO best practices

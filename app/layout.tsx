@@ -26,9 +26,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Video Daddy Chat",
+  title: "vid0",
   description:
-    "Video Daddy Chat is an AI-powered assistant for YouTube creators. Get help with video ideas, titles, scripts, SEO, thumbnails, and growth strategies. Multi-model, BYOK-ready, and self-hostable.",
+    "vid0 is an AI-powered assistant for YouTube creators. Get help with video ideas, titles, scripts, SEO, thumbnails, and growth strategies. Multi-model, BYOK-ready, and self-hostable.",
 }
 
 export default async function RootLayout({

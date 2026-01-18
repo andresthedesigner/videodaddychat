@@ -333,7 +333,7 @@ export const mockPremiumUser = {
 // tests/fixtures/messages.ts
 export const mockUserMessage = {
   role: "user" as const,
-  content: "Hello, Video Daddy!",
+  content: "Hello, vid0!",
   chat_id: "chat-123",
 }
 ```
