@@ -1,19 +1,5 @@
-import { SignIn } from "@clerk/nextjs"
+import { redirect } from "next/navigation"
 
 export default function AuthPage() {
-  return (
-    <div className="flex min-h-dvh items-center justify-center">
-      <SignIn
-        appearance={{
-          elements: {
-            rootBox: "mx-auto",
-            card: "shadow-none bg-transparent",
-          },
-        }}
-        routing="path"
-        path="/auth"
-        fallbackRedirectUrl="/"
-      />
-    </div>
-  )
+  redirect("/auth/login")
 }

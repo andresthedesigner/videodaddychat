@@ -30,7 +30,7 @@ function AuthErrorContent() {
             size="lg"
             asChild
           >
-            <Link href="/auth">Try Again</Link>
+            <Link href="/auth/login">Try Again</Link>
           </Button>
         </div>
       </div>
