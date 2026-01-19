@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ChatsProvider } from "@/lib/chat-store/chats/provider"
 import { ChatSessionProvider } from "@/lib/chat-store/session/provider"
+import { APP_DOMAIN } from "@/lib/config"
 import { ModelProvider } from "@/lib/model-store/provider"
 import { TanstackQueryProvider } from "@/lib/tanstack-query/tanstack-query-provider"
 import { UserPreferencesProvider } from "@/lib/user-preference-store/provider"
@@ -14,6 +15,7 @@ import { getUserProfile } from "@/lib/user/api"
 import { ThemeProvider } from "next-themes"
 import Script from "next/script"
 import { LayoutClient } from "./layout-client"
+import { Providers } from "./providers"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,9 +28,10 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Video Daddy Chat",
+  metadataBase: new URL(APP_DOMAIN),
+  title: "vid0",
   description:
-    "Video Daddy Chat is an AI-powered assistant for YouTube creators. Get help with video ideas, titles, scripts, SEO, thumbnails, and growth strategies. Multi-model, BYOK-ready, and self-hostable.",
+    "vid0 is an AI-powered assistant for YouTube creators. Get help with video ideas, titles, scripts, SEO, thumbnails, and growth strategies. Multi-model, BYOK-ready, and self-hostable.",
 }
 
 export default async function RootLayout({
@@ -46,44 +49,46 @@ export default async function RootLayout({
         <Script
           defer
           src="https://assets.onedollarstats.com/stonks.js"
-          {...(isDev ? { "data-debug": "videodaddy.chat" } : {})}
+          {...(isDev ? { "data-debug": "vid0.chat" } : {})}
         />
       ) : null}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <TanstackQueryProvider>
-          <LayoutClient />
-          <UserProvider initialUser={userProfile}>
-            <ModelProvider>
-              <ChatsProvider userId={userProfile?.id}>
-                <ChatSessionProvider>
-                  <UserPreferencesProvider
-                    userId={userProfile?.id}
-                    initialPreferences={userProfile?.preferences}
-                  >
-                    <TooltipProvider
-                      delayDuration={200}
-                      skipDelayDuration={500}
+        <Providers>
+          <TanstackQueryProvider>
+            <LayoutClient />
+            <UserProvider initialUser={userProfile}>
+              <ModelProvider>
+                <ChatsProvider userId={userProfile?.id}>
+                  <ChatSessionProvider>
+                    <UserPreferencesProvider
+                      userId={userProfile?.id}
+                      initialPreferences={userProfile?.preferences}
                     >
-                      <ThemeProvider
-                        attribute="class"
-                        defaultTheme="system"
-                        enableSystem
-                        disableTransitionOnChange
+                      <TooltipProvider
+                        delayDuration={200}
+                        skipDelayDuration={500}
                       >
-                        <SidebarProvider defaultOpen>
-                          <Toaster position="top-center" />
-                          {children}
-                        </SidebarProvider>
-                      </ThemeProvider>
-                    </TooltipProvider>
-                  </UserPreferencesProvider>
-                </ChatSessionProvider>
-              </ChatsProvider>
-            </ModelProvider>
-          </UserProvider>
-        </TanstackQueryProvider>
+                        <ThemeProvider
+                          attribute="class"
+                          defaultTheme="system"
+                          enableSystem
+                          disableTransitionOnChange
+                        >
+                          <SidebarProvider defaultOpen>
+                            <Toaster position="top-center" />
+                            {children}
+                          </SidebarProvider>
+                        </ThemeProvider>
+                      </TooltipProvider>
+                    </UserPreferencesProvider>
+                  </ChatSessionProvider>
+                </ChatsProvider>
+              </ModelProvider>
+            </UserProvider>
+          </TanstackQueryProvider>
+        </Providers>
       </body>
     </html>
   )

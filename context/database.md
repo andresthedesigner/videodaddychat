@@ -1,21 +1,22 @@
 # Database Schema & Patterns
 
 > **Last Updated:** January 2026  
-> **Current:** Supabase PostgreSQL  
-> **Planned:** Migration to Convex
+> **Database:** Convex (reactive database with built-in RAG)  
+> **Auth:** Clerk (integrated via ConvexProviderWithClerk)
 
 ## Migration Status
 
-⚠️ **Active Migration:** We are migrating from Supabase to Convex for improved AI/RAG capabilities and TypeScript-first DX.
+✅ **Migration Complete:** Successfully migrated from Supabase to Convex.
 
-| Feature | Supabase Status | Convex Status |
-|---------|-----------------|---------------|
-| Schema | ✅ Active | 📋 Planned |
-| Auth | ✅ Active | 📋 Clerk migration |
-| Real-time | ✅ Manual subscriptions | 📋 Native reactive |
-| Vector search | ❌ Not implemented | 📋 Built-in RAG |
+| Feature | Status |
+|---------|--------|
+| Schema | ✅ Complete |
+| Auth | ✅ Clerk integrated |
+| Real-time | ✅ Native reactive queries |
+| File Storage | ✅ Convex storage |
+| Vector search | 📋 Ready (built-in RAG) |
 
-## Current Schema (Supabase)
+## Current Schema (Convex)
 
 ### Entity Relationship Diagram
 
@@ -23,259 +24,55 @@
 ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
 │    users    │       │    chats    │       │  messages   │
 ├─────────────┤       ├─────────────┤       ├─────────────┤
-│ id (PK)     │──┐    │ id (PK)     │──┐    │ id (PK)     │
-│ email       │  │    │ user_id (FK)│──┘    │ chat_id (FK)│──┘
-│ display_name│  │    │ project_id  │       │ user_id (FK)│──┐
-│ profile_img │  │    │ title       │       │ role        │  │
-│ premium     │  │    │ model       │       │ content     │  │
-│ anonymous   │  │    │ public      │       │ parts       │  │
-│ daily_*     │  │    │ pinned      │       │ attachments │  │
-│ system_prmpt│  │    │ created_at  │       │ model       │  │
-└─────────────┘  │    │ updated_at  │       │ created_at  │  │
-                 │    └─────────────┘       └─────────────┘  │
+│ _id (PK)    │──┐    │ _id (PK)    │──┐    │ _id (PK)    │
+│ clerkId     │  │    │ userId (FK) │──┘    │ chatId (FK) │──┘
+│ email       │  │    │ projectId   │       │ userId (FK) │──┐
+│ displayName │  │    │ title       │       │ role        │  │
+│ profileImage│  │    │ model       │       │ content     │  │
+│ premium     │  │    │ public      │       │ parts       │  │
+│ anonymous   │  │    │ pinned      │       │ attachments │  │
+│ daily*      │  │    │ pinnedAt    │       │ model       │  │
+│ systemPrompt│  │    │ updatedAt   │       │ orderId     │  │
+└─────────────┘  │    └─────────────┘       └─────────────┘  │
                  │           │                               │
                  │    ┌──────┴──────┐                        │
                  │    │             │                        │
                  │    ▼             ▼                        │
             ┌─────────────┐  ┌─────────────┐                 │
-            │  projects   │  │chat_attach- │                 │
+            │  projects   │  │chatAttach-  │                 │
             ├─────────────┤  │   ments     │                 │
-            │ id (PK)     │  ├─────────────┤                 │
-            │ user_id (FK)│──┤ id (PK)     │                 │
-            │ name        │  │ chat_id (FK)│                 │
-            │ created_at  │  │ user_id (FK)│─────────────────┘
-            └─────────────┘  │ file_url    │
-                             │ file_name   │
-                             │ file_type   │
-                             │ file_size   │
+            │ _id (PK)    │  ├─────────────┤                 │
+            │ userId (FK) │──┤ _id (PK)    │                 │
+            │ name        │  │ chatId (FK) │                 │
+            └─────────────┘  │ userId (FK) │─────────────────┘
+                             │ storageId   │
+                             │ fileUrl     │
+                             │ fileName    │
                              └─────────────┘
 
 ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
-│  user_keys  │       │user_prefs   │       │  feedback   │
+│  userKeys   │       │userPrefs    │       │  feedback   │
 ├─────────────┤       ├─────────────┤       ├─────────────┤
-│ user_id(FK) │       │ user_id(FK) │       │ id (PK)     │
-│ provider    │       │ layout      │       │ user_id(FK) │
-│ encrypted_* │       │ prompt_sugg │       │ message     │
-│ iv          │       │ tool_invoc  │       │ created_at  │
-│ created_at  │       │ conv_prev   │       └─────────────┘
-│ updated_at  │       │ multi_model │
-└─────────────┘       │ hidden_mdls │
-                      └─────────────┘
+│ userId(FK)  │       │ userId(FK)  │       │ _id (PK)    │
+│ provider    │       │ layout      │       │ userId(FK)  │
+│ encryptedKey│       │ promptSugg  │       │ message     │
+│ iv          │       │ toolInvoc   │       └─────────────┘
+└─────────────┘       │ convPrev    │
+                      │ multiModel  │
+┌─────────────┐       │ hiddenMdls  │
+│anonymousUsage│      └─────────────┘
+├─────────────┤
+│ anonymousId │
+│ dailyCount  │
+│ dailyReset  │
+└─────────────┘
 ```
 
-### Table Definitions
+### Schema Definition
 
-#### users
-
-Primary user table with authentication and usage tracking.
+Location: `convex/schema.ts`
 
 ```typescript
-type User = {
-  id: string                    // UUID, matches Supabase auth.users.id
-  email: string                 // Required, unique
-  display_name: string | null   // Optional display name
-  profile_image: string | null  // Avatar URL
-  premium: boolean | null       // Premium subscription status
-  anonymous: boolean | null     // Guest user flag
-  
-  // Usage tracking
-  message_count: number | null        // Total messages sent
-  daily_message_count: number | null  // Today's message count
-  daily_reset: string | null          // When daily count was last reset
-  daily_pro_message_count: number | null  // Pro model usage
-  daily_pro_reset: string | null
-  
-  // Preferences
-  favorite_models: string[] | null    // User's preferred models
-  system_prompt: string | null        // Custom system prompt
-  
-  // Timestamps
-  created_at: string | null
-  last_active_at: string | null
-}
-```
-
-#### chats
-
-Chat sessions container.
-
-```typescript
-type Chat = {
-  id: string                // UUID
-  user_id: string           // FK to users.id
-  project_id: string | null // Optional project grouping
-  title: string | null      // Chat title (auto-generated or custom)
-  model: string | null      // Current AI model
-  public: boolean           // Shareable chat flag
-  pinned: boolean           // Pinned to top
-  pinned_at: string | null  // When pinned
-  created_at: string | null
-  updated_at: string | null
-}
-```
-
-#### messages
-
-Individual chat messages.
-
-```typescript
-type Message = {
-  id: number                // Auto-increment
-  chat_id: string           // FK to chats.id
-  user_id: string | null    // FK to users.id
-  role: "system" | "user" | "assistant" | "data"
-  content: string | null    // Message text
-  parts: Json | null        // Structured content (reasoning, sources)
-  experimental_attachments: Attachment[]  // File attachments
-  message_group_id: string | null  // For grouping edits
-  model: string | null      // Model that generated (for assistant)
-  created_at: string | null
-}
-```
-
-#### projects
-
-Optional organization structure for chats.
-
-```typescript
-type Project = {
-  id: string                // UUID
-  name: string              // Project name
-  user_id: string           // FK to users.id
-  created_at: string | null
-}
-```
-
-#### user_keys
-
-Encrypted user-provided API keys.
-
-```typescript
-type UserKey = {
-  user_id: string           // FK to users.id
-  provider: string          // "openai", "anthropic", etc.
-  encrypted_key: string     // AES-256-GCM encrypted
-  iv: string                // Initialization vector
-  created_at: string | null
-  updated_at: string | null
-}
-```
-
-#### user_preferences
-
-User UI/UX preferences.
-
-```typescript
-type UserPreferences = {
-  user_id: string                      // FK to users.id (unique)
-  layout: string | null                // "default" | "compact"
-  prompt_suggestions: boolean | null   // Show prompt suggestions
-  show_tool_invocations: boolean | null
-  show_conversation_previews: boolean | null
-  multi_model_enabled: boolean | null
-  hidden_models: string[] | null       // Models to hide from selector
-  created_at: string | null
-  updated_at: string | null
-}
-```
-
-## Query Patterns
-
-### Fetching User's Chats
-
-```typescript
-// Get all chats for user, sorted by pinned then updated
-const { data: chats } = await supabase
-  .from("chats")
-  .select("*")
-  .eq("user_id", userId)
-  .order("pinned", { ascending: false })
-  .order("pinned_at", { ascending: false, nullsFirst: false })
-  .order("updated_at", { ascending: false })
-```
-
-### Loading Chat Messages
-
-```typescript
-// Get messages for a specific chat
-const { data: messages } = await supabase
-  .from("messages")
-  .select("*")
-  .eq("chat_id", chatId)
-  .order("created_at", { ascending: true })
-```
-
-### Storing Assistant Response
-
-```typescript
-// After streaming completes, store the message
-await supabase.from("messages").insert({
-  chat_id: chatId,
-  role: "assistant",
-  content: response.text,
-  parts: response.parts,
-  model: modelId,
-  message_group_id: groupId,
-})
-```
-
-### Editing Messages (Delete and Re-insert)
-
-```typescript
-// When user edits, delete all messages from edit point forward
-await supabase
-  .from("messages")
-  .delete()
-  .eq("chat_id", chatId)
-  .gte("created_at", editCutoffTimestamp)
-
-// Then insert the new user message
-await supabase.from("messages").insert({
-  chat_id: chatId,
-  role: "user",
-  content: newContent,
-  // ...
-})
-```
-
-## Rate Limiting Queries
-
-### Check and Increment Usage
-
-```typescript
-// Get current usage
-const { data: user } = await supabase
-  .from("users")
-  .select("daily_message_count, daily_reset, daily_pro_message_count")
-  .eq("id", userId)
-  .single()
-
-// Check if reset needed (midnight Pacific)
-const pacificMidnight = new Date()
-pacificMidnight.setUTCHours(8, 0, 0, 0) // 00:00 Pacific = 08:00 UTC
-
-if (new Date(user.daily_reset) < pacificMidnight) {
-  await supabase
-    .from("users")
-    .update({ 
-      daily_message_count: 1, 
-      daily_reset: new Date().toISOString() 
-    })
-    .eq("id", userId)
-} else {
-  await supabase
-    .from("users")
-    .update({ daily_message_count: user.daily_message_count + 1 })
-    .eq("id", userId)
-}
-```
-
-## Planned Convex Schema
-
-<!-- TODO: Implement after migration approved -->
-
-```typescript
-// convex/schema.ts (planned)
 import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
 
@@ -285,158 +82,274 @@ export default defineSchema({
     email: v.string(),
     displayName: v.optional(v.string()),
     profileImage: v.optional(v.string()),
-    isPremium: v.boolean(),
-    dailyMessageCount: v.number(),
-    dailyResetAt: v.number(),
+    anonymous: v.optional(v.boolean()),
+    premium: v.optional(v.boolean()),
+    messageCount: v.optional(v.number()),
+    dailyMessageCount: v.optional(v.number()),
+    dailyReset: v.optional(v.number()),
+    dailyProMessageCount: v.optional(v.number()),
+    dailyProReset: v.optional(v.number()),
+    lastActiveAt: v.optional(v.number()),
+    favoriteModels: v.optional(v.array(v.string())),
     systemPrompt: v.optional(v.string()),
-  }).index("by_clerk_id", ["clerkId"]),
-  
+  })
+    .index("by_clerk_id", ["clerkId"])
+    .index("by_email", ["email"]),
+
   chats: defineTable({
     userId: v.id("users"),
-    projectId: v.optional(v.id("projects")),
     title: v.optional(v.string()),
-    model: v.string(),
-    isPublic: v.boolean(),
-    isPinned: v.boolean(),
+    model: v.optional(v.string()),
+    systemPrompt: v.optional(v.string()),
+    projectId: v.optional(v.id("projects")),
+    public: v.boolean(),
+    pinned: v.boolean(),
     pinnedAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
-    .index("by_user_pinned", ["userId", "isPinned"]),
-  
+    .index("by_user_pinned", ["userId", "pinned"])
+    .index("by_project", ["projectId"]),
+
   messages: defineTable({
     chatId: v.id("chats"),
+    orderId: v.optional(v.number()),
+    userId: v.optional(v.id("users")),
     role: v.union(
-      v.literal("system"),
       v.literal("user"),
       v.literal("assistant"),
+      v.literal("system"),
       v.literal("data")
     ),
-    content: v.string(),
+    content: v.optional(v.string()),
     parts: v.optional(v.any()),
-    attachments: v.optional(v.array(v.object({
-      url: v.string(),
-      name: v.string(),
-      type: v.string(),
-      size: v.number(),
-    }))),
+    attachments: v.optional(v.array(v.any())),
+    messageGroupId: v.optional(v.string()),
     model: v.optional(v.string()),
-    groupId: v.optional(v.string()),
-  }).index("by_chat", ["chatId"]),
-  
-  // Built-in RAG support
-  embeddings: defineTable({
-    userId: v.id("users"),
-    namespace: v.string(),  // "transcripts", "notes", etc.
-    content: v.string(),
-    embedding: v.array(v.float64()),
-    metadata: v.optional(v.any()),
   })
-    .index("by_user_namespace", ["userId", "namespace"])
-    .vectorIndex("by_embedding", {
-      vectorField: "embedding",
-      dimensions: 1536,
-      filterFields: ["userId", "namespace"],
-    }),
+    .index("by_chat", ["chatId"])
+    .index("by_chat_role", ["chatId", "role"]),
+
+  // ... additional tables: projects, userPreferences, userKeys, feedback, chatAttachments, anonymousUsage
 })
 ```
 
-### Convex Benefits for AI/RAG
+## Query Patterns
+
+### Using Convex React Hooks
 
 ```typescript
-// Example: Vector search for relevant context
-const relevantDocs = await ctx.db
-  .query("embeddings")
-  .withIndex("by_embedding")
-  .filter((q) => 
-    q.and(
-      q.eq(q.field("userId"), userId),
-      q.eq(q.field("namespace"), "transcripts")
-    )
-  )
-  .vectorSearch("embedding", queryEmbedding, { limit: 5 })
+// Real-time query - UI updates automatically when data changes
+const chats = useQuery(api.chats.getForCurrentUser, {})
 
-// Native real-time - no manual subscriptions
-const chats = useQuery(api.chats.list, { userId })
-// UI automatically updates when data changes
+// Mutation
+const createChat = useMutation(api.chats.create)
+await createChat({ title: "New Chat", model: "claude-4-opus" })
+```
+
+### Fetching User's Chats
+
+```typescript
+// convex/chats.ts
+export const getForCurrentUser = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique()
+    
+    if (!user) return []
+    
+    return await ctx.db
+      .query("chats")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .collect()
+  },
+})
+```
+
+### Loading Chat Messages
+
+```typescript
+// convex/messages.ts
+export const getByChatId = query({
+  args: { chatId: v.id("chats") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("messages")
+      .withIndex("by_chat", (q) => q.eq("chatId", args.chatId))
+      .order("asc")
+      .collect()
+  },
+})
+```
+
+### Storing Assistant Response
+
+```typescript
+// convex/messages.ts
+export const create = mutation({
+  args: {
+    chatId: v.id("chats"),
+    role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
+    content: v.optional(v.string()),
+    parts: v.optional(v.any()),
+    model: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("messages", {
+      ...args,
+      orderId: Date.now(),
+    })
+  },
+})
+```
+
+## Rate Limiting
+
+### Check and Increment Usage
+
+```typescript
+// convex/usage.ts
+export const checkAndIncrement = mutation({
+  args: { isProModel: v.boolean() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Not authenticated")
+    
+    const user = await getUserByClerkId(ctx, identity.subject)
+    if (!user) throw new Error("User not found")
+    
+    const now = Date.now()
+    const pacificMidnight = getPacificMidnight()
+    
+    // Check if reset needed
+    const needsReset = !user.dailyReset || user.dailyReset < pacificMidnight
+    
+    if (needsReset) {
+      await ctx.db.patch(user._id, {
+        dailyMessageCount: 1,
+        dailyReset: now,
+      })
+      return { allowed: true, count: 1 }
+    }
+    
+    // Check limit and increment
+    const count = (user.dailyMessageCount ?? 0) + 1
+    const limit = args.isProModel ? DAILY_LIMIT_PRO_MODELS : AUTH_DAILY_MESSAGE_LIMIT
+    
+    if (count > limit) {
+      return { allowed: false, count: user.dailyMessageCount }
+    }
+    
+    await ctx.db.patch(user._id, { dailyMessageCount: count })
+    return { allowed: true, count }
+  },
+})
+```
+
+## File Storage
+
+### Upload File to Convex Storage
+
+```typescript
+// convex/files.ts
+export const generateUploadUrl = mutation({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Not authenticated")
+    return await ctx.storage.generateUploadUrl()
+  },
+})
+
+export const saveFile = mutation({
+  args: {
+    chatId: v.id("chats"),
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    fileType: v.string(),
+    fileSize: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const fileUrl = await ctx.storage.getUrl(args.storageId)
+    // Save to chatAttachments table...
+  },
+})
 ```
 
 ## Security
 
-### Row-Level Security (Supabase)
+### Authentication via Clerk
 
-```sql
--- Users can only read their own data
-CREATE POLICY "Users read own data" ON users
-  FOR SELECT USING (auth.uid() = id);
-
--- Users can only access their own chats
-CREATE POLICY "Users access own chats" ON chats
-  FOR ALL USING (auth.uid() = user_id);
-
--- Messages accessible if user owns the chat
-CREATE POLICY "Messages via chat ownership" ON messages
-  FOR ALL USING (
-    chat_id IN (
-      SELECT id FROM chats WHERE user_id = auth.uid()
-    )
-  );
+```typescript
+// Convex functions automatically have access to auth context
+export const secureQuery = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) {
+      throw new Error("Not authenticated")
+    }
+    // identity.subject contains the Clerk user ID
+  },
+})
 ```
 
 ### Encrypted API Keys
 
 ```typescript
-// API keys are never stored in plaintext
+// API keys are encrypted before storage in userKeys table
 // See lib/encryption.ts for implementation
 
-// Store
-const { encrypted, iv } = await encryptApiKey(apiKey)
-await supabase.from("user_keys").upsert({
-  user_id: userId,
-  provider,
-  encrypted_key: encrypted,
-  iv,
+// Store encrypted key
+await ctx.db.insert("userKeys", {
+  userId: user._id,
+  provider: "openai",
+  encryptedKey: encrypted,
+  iv: initVector,
 })
 
-// Retrieve
-const { data } = await supabase
-  .from("user_keys")
-  .select("encrypted_key, iv")
-  .eq("user_id", userId)
-  .eq("provider", provider)
-  .single()
-
-const apiKey = await decryptApiKey(data.encrypted_key, data.iv)
+// Retrieve and decrypt (done in API routes, not Convex)
+const { data } = await ctx.db
+  .query("userKeys")
+  .withIndex("by_user_provider", (q) => 
+    q.eq("userId", userId).eq("provider", provider)
+  )
+  .unique()
 ```
 
-## Migrations
+## Convex Benefits
 
-### Current Migration Files
+### Real-time by Default
 
-<!-- TODO: Document Supabase migrations -->
-
-Migrations are managed via Supabase CLI:
-
-```bash
-# Generate new migration
-supabase migration new add_feature_name
-
-# Apply migrations locally
-supabase db reset
-
-# Push to production
-supabase db push
+```typescript
+// No manual subscriptions needed - UI updates automatically
+const chats = useQuery(api.chats.getForCurrentUser, {})
+// When any chat is modified, this query re-runs automatically
 ```
 
-### Convex Migration Plan
+### TypeScript-First
 
-1. Set up Convex project with new schema
-2. Create data export script from Supabase
-3. Transform data to Convex format
-4. Import to Convex
-5. Update application code to use Convex client
-6. Migrate auth to Clerk (Convex recommended)
-7. Deprecate Supabase client
+```typescript
+// Full type safety from schema to client
+const chat = await ctx.db.get(chatId)
+chat.title // TypeScript knows this is string | undefined
+```
+
+### Built-in RAG Support (Future)
+
+```typescript
+// Vector search for relevant context (planned)
+const relevantDocs = await ctx.db
+  .query("embeddings")
+  .withIndex("by_embedding")
+  .filter((q) => q.eq(q.field("userId"), userId))
+  .vectorSearch("embedding", queryEmbedding, { limit: 5 })
+```
 
 ---
 
-*See `@docs/agents-research.md` for Convex vs Supabase evaluation and `@context/architecture.md` for data flow patterns.*
+*See `convex/schema.ts` for the complete schema and `context/architecture.md` for data flow patterns.*

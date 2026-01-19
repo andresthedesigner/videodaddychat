@@ -2,48 +2,38 @@
 
 import { Button } from "@/components/ui/button"
 import { PopoverContent } from "@/components/ui/popover"
-import { signInWithGoogle } from "@/lib/api"
 import { APP_NAME } from "@/lib/config"
-import { createClient } from "@/lib/supabase/client"
-import { isSupabaseEnabled } from "@/lib/supabase/config"
+import { useSignIn } from "@clerk/nextjs"
 import Image from "next/image"
 import { useState } from "react"
 
 export function PopoverContentAuth() {
+  const { signIn, isLoaded } = useSignIn()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (!isSupabaseEnabled) {
-    return null
-  }
-
   const handleSignInWithGoogle = async () => {
-    const supabase = createClient()
-
-    if (!supabase) {
-      throw new Error("Supabase is not configured")
-    }
+    if (!isLoaded || !signIn) return
 
     try {
       setIsLoading(true)
       setError(null)
 
-      const data = await signInWithGoogle(supabase)
-
-      // Redirect to the provider URL
-      if (data?.url) {
-        window.location.href = data.url
-      }
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/auth/callback",
+        redirectUrlComplete: "/",
+      })
     } catch (err: unknown) {
       console.error("Error signing in with Google:", err)
       setError(
         (err as Error).message ||
           "An unexpected error occurred. Please try again."
       )
-    } finally {
       setIsLoading(false)
     }
   }
+
   return (
     <PopoverContent
       className="w-[300px] overflow-hidden rounded-xl p-0"
@@ -74,8 +64,9 @@ export function PopoverContentAuth() {
           className="w-full text-base"
           size="lg"
           onClick={handleSignInWithGoogle}
-          disabled={isLoading}
+          disabled={isLoading || !isLoaded}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element -- External favicon, optimization not needed */}
           <img
             src="https://www.google.com/favicon.ico"
             alt="Google logo"

@@ -1,6 +1,6 @@
-# Video Daddy Chat
+# vid0
 
-**Video Daddy Chat** is an AI-powered chat assistant designed to help YouTube creators make better videos. Get help with video ideas, titles, descriptions, scripts, SEO optimization, thumbnail concepts, and more.
+**vid0** is an AI-powered chat assistant designed to help YouTube creators make better videos. Get help with video ideas, titles, descriptions, scripts, SEO optimization, thumbnail concepts, and more.
 
 Built on top of [Zola](https://github.com/ibelick/zola), the open-source chat interface.
 
@@ -16,7 +16,7 @@ Built on top of [Zola](https://github.com/ibelick/zola), the open-source chat in
 - 🖥️ **Local AI with Ollama** - Run models locally with automatic detection
 - 🔌 **MCP support** (work in progress)
 
-## What Can Video Daddy Help With?
+## What Can vid0 Help With?
 
 - **Video Ideas** - Brainstorm content ideas based on your niche and audience
 - **Titles & Thumbnails** - Craft click-worthy titles and thumbnail concepts
@@ -31,8 +31,8 @@ Built on top of [Zola](https://github.com/ibelick/zola), the open-source chat in
 ### Option 1: With OpenAI (Cloud)
 
 ```bash
-git clone https://github.com/andresthedesigner/videodaddychat.git
-cd videodaddychat
+git clone https://github.com/batmn-dev/vid0.git
+cd vid0
 bun install
 echo "OPENAI_API_KEY=your-key" > .env.local
 bun dev
@@ -45,20 +45,20 @@ bun dev
 curl -fsSL https://ollama.ai/install.sh | sh
 ollama pull llama3.2  # or any model you prefer
 
-# Clone and run Video Daddy Chat
-git clone https://github.com/andresthedesigner/videodaddychat.git
-cd videodaddychat
+# Clone and run vid0
+git clone https://github.com/batmn-dev/vid0.git
+cd vid0
 bun install
 bun dev
 ```
 
-Video Daddy Chat will automatically detect your local Ollama models!
+vid0 will automatically detect your local Ollama models!
 
 ### Option 3: Docker with Ollama
 
 ```bash
-git clone https://github.com/andresthedesigner/videodaddychat.git
-cd videodaddychat
+git clone https://github.com/batmn-dev/vid0.git
+cd vid0
 docker-compose -f docker-compose.ollama.yml up
 ```
 

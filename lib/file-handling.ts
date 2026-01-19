@@ -1,9 +1,6 @@
-import type { SupabaseClientType } from "@/app/types/api.types"
 import { toast } from "@/components/ui/toast"
+import type { ConvexReactClient } from "convex/react"
 import * as fileType from "file-type"
-import { DAILY_FILE_UPLOAD_LIMIT } from "./config"
-import { createClient } from "./supabase/client"
-import { isSupabaseEnabled } from "./supabase/config"
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -51,28 +48,61 @@ export async function validateFile(
   return { isValid: true }
 }
 
-export async function uploadFile(
-  supabase: SupabaseClientType,
-  file: File
+// ============================================================================
+// Convex File Operations
+// ============================================================================
+
+/**
+ * Upload a file to Convex storage
+ * 1. Generate an upload URL
+ * 2. Upload the file directly to Convex storage
+ * 3. Save attachment metadata in the database
+ */
+export async function uploadFileToConvex(
+  convex: ConvexReactClient,
+  file: File,
+  chatId: string
 ): Promise<string> {
-  const fileExt = file.name.split(".").pop()
-  const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
-  const filePath = `uploads/${fileName}`
+  // Import dynamically to avoid circular imports
+  const { api } = await import("@/convex/_generated/api")
 
-  const { error } = await supabase.storage
-    .from("chat-attachments")
-    .upload(filePath, file)
+  // 1. Generate upload URL
+  const uploadUrl = await convex.mutation(api.files.generateUploadUrl, {})
 
-  if (error) {
-    throw new Error(`Error uploading file: ${error.message}`)
+  // 2. Upload file to Convex storage
+  const response = await fetch(uploadUrl, {
+    method: "POST",
+    headers: { "Content-Type": file.type },
+    body: file,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to upload file: ${response.statusText}`)
   }
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("chat-attachments").getPublicUrl(filePath)
+  const { storageId } = await response.json()
 
-  return publicUrl
+  // 3. Save attachment metadata
+  await convex.mutation(api.files.saveAttachment, {
+    chatId: chatId as unknown as typeof api.files.saveAttachment._args.chatId,
+    storageId,
+    fileName: file.name,
+    fileType: file.type,
+    fileSize: file.size,
+  })
+
+  // 4. Get the public URL for the file
+  const fileUrl = await convex.query(api.files.getUrl, { storageId })
+  if (!fileUrl) {
+    throw new Error("Failed to get file URL after upload")
+  }
+
+  return fileUrl
 }
+
+// ============================================================================
+// Common Operations
+// ============================================================================
 
 export function createAttachment(file: File, url: string): Attachment {
   return {
@@ -82,12 +112,17 @@ export function createAttachment(file: File, url: string): Attachment {
   }
 }
 
+/**
+ * Process files for upload using Convex
+ * @param files Files to process
+ * @param chatId Chat ID for attaching files
+ * @param convex Convex client for uploads
+ */
 export async function processFiles(
   files: File[],
   chatId: string,
-  userId: string
+  convex: ConvexReactClient
 ): Promise<Attachment[]> {
-  const supabase = isSupabaseEnabled ? createClient() : null
   const attachments: Attachment[] = []
 
   for (const file of files) {
@@ -103,28 +138,15 @@ export async function processFiles(
     }
 
     try {
-      const url = supabase
-        ? await uploadFile(supabase, file)
-        : URL.createObjectURL(file)
-
-      if (supabase) {
-        const { error } = await supabase.from("chat_attachments").insert({
-          chat_id: chatId,
-          user_id: userId,
-          file_url: url,
-          file_name: file.name,
-          file_type: file.type,
-          file_size: file.size,
-        })
-
-        if (error) {
-          throw new Error(`Database insertion failed: ${error.message}`)
-        }
-      }
-
+      const url = await uploadFileToConvex(convex, file, chatId)
       attachments.push(createAttachment(file, url))
     } catch (error) {
       console.error(`Error processing file ${file.name}:`, error)
+      toast({
+        title: "File upload failed",
+        description: `Failed to upload ${file.name}`,
+        status: "error",
+      })
     }
   }
 
@@ -139,34 +161,18 @@ export class FileUploadLimitError extends Error {
   }
 }
 
-export async function checkFileUploadLimit(userId: string) {
-  if (!isSupabaseEnabled) return 0
+/**
+ * Check file upload limit using Convex
+ */
+export async function checkFileUploadLimit(
+  convex: ConvexReactClient
+): Promise<number> {
+  const { api } = await import("@/convex/_generated/api")
+  const result = await convex.query(api.files.checkUploadLimit, {})
 
-  const supabase = createClient()
-
-  if (!supabase) {
-    toast({
-      title: "File upload is not supported in this deployment",
-      status: "info",
-    })
-    return 0
-  }
-
-  const now = new Date()
-  const startOfToday = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  )
-
-  const { count, error } = await supabase
-    .from("chat_attachments")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("created_at", startOfToday.toISOString())
-
-  if (error) throw new Error(error.message)
-  if (count && count >= DAILY_FILE_UPLOAD_LIMIT) {
+  if (!result.canUpload) {
     throw new FileUploadLimitError("Daily file upload limit reached.")
   }
 
-  return count
+  return result.count
 }

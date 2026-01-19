@@ -5,11 +5,11 @@
 
 ## Overview
 
-Video Daddy Chat is an AI-powered platform for YouTube content creators, providing data-driven recommendations for scripts, titles, and thumbnails through a chat-based interface.
+vid0 is an AI-powered platform for YouTube content creators, providing data-driven recommendations for scripts, titles, and thumbnails through a chat-based interface.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      VIDEO DADDY CHAT                        │
+│                          vid0                                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌─────────────────────────────────────────────────────────┐│

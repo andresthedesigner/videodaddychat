@@ -1,5 +1,6 @@
 "use client"
 
+import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,8 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { fetchClient } from "@/lib/fetch"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { toast } from "@/components/ui/toast"
+import { useMutation } from "convex/react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
@@ -20,48 +21,34 @@ type DialogCreateProjectProps = {
   setIsOpen: (isOpen: boolean) => void
 }
 
-type CreateProjectData = {
-  id: string
-  name: string
-  user_id: string
-  created_at: string
-}
-
 export function DialogCreateProject({
   isOpen,
   setIsOpen,
 }: DialogCreateProjectProps) {
   const [projectName, setProjectName] = useState("")
-  const queryClient = useQueryClient()
+  const [isPending, setIsPending] = useState(false)
   const router = useRouter()
-  const createProjectMutation = useMutation({
-    mutationFn: async (name: string): Promise<CreateProjectData> => {
-      const response = await fetchClient("/api/projects", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name }),
-      })
+  const createProject = useMutation(api.projects.create)
 
-      if (!response.ok) {
-        throw new Error("Failed to create project")
-      }
-
-      return response.json()
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] })
-      router.push(`/p/${data.id}`)
+  const handleCreate = async (name: string) => {
+    setIsPending(true)
+    try {
+      const projectId = await createProject({ name })
+      router.push(`/p/${projectId}`)
       setProjectName("")
       setIsOpen(false)
-    },
-  })
+    } catch (error) {
+      console.error("Failed to create project:", error)
+      toast({ title: "Failed to create project", status: "error" })
+    } finally {
+      setIsPending(false)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (projectName.trim()) {
-      createProjectMutation.mutate(projectName.trim())
+      handleCreate(projectName.trim())
     }
   }
 
@@ -93,11 +80,9 @@ export function DialogCreateProject({
             </Button>
             <Button
               type="submit"
-              disabled={!projectName.trim() || createProjectMutation.isPending}
+              disabled={!projectName.trim() || isPending}
             >
-              {createProjectMutation.isPending
-                ? "Creating..."
-                : "Create Project"}
+              {isPending ? "Creating..." : "Create Project"}
             </Button>
           </DialogFooter>
         </form>

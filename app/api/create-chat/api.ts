@@ -1,6 +1,3 @@
-import { validateUserIdentity } from "@/lib/server/api"
-import { checkUsageByModel } from "@/lib/usage"
-
 type CreateChatInput = {
   userId: string
   title?: string
@@ -9,44 +6,30 @@ type CreateChatInput = {
   projectId?: string
 }
 
+/**
+ * Create a chat using Convex
+ * Note: With Convex, chat creation typically happens client-side via mutations
+ * This server-side function is provided for API route compatibility
+ */
 export async function createChatInDb({
   userId,
   title,
   model,
-  isAuthenticated,
   projectId,
-}: CreateChatInput) {
-  const supabase = await validateUserIdentity(userId, isAuthenticated)
-  if (!supabase) {
-    return {
-      id: crypto.randomUUID(),
-      user_id: userId,
-      title,
-      model,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-  }
-
-  await checkUsageByModel(supabase, userId, model, isAuthenticated)
-
-  const insertData = {
+}: Omit<CreateChatInput, "isAuthenticated">) {
+  // With Convex, we return a placeholder that will be replaced by the actual Convex ID
+  // The actual creation happens client-side via useMutation in ChatsProvider
+  // This API route is kept for backward compatibility but the provider handles creation
+  return {
+    id: crypto.randomUUID(), // Temporary ID, replaced by Convex
     user_id: userId,
     title: title || "New Chat",
     model,
-    project_id: projectId,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    public: false,
+    pinned: false,
+    pinned_at: null,
+    project_id: projectId || null,
   }
-
-  const { data, error } = await supabase
-    .from("chats")
-    .insert(insertData)
-    .select("*")
-    .single()
-
-  if (error || !data) {
-    console.error("Error creating chat:", error)
-    return null
-  }
-
-  return data
 }

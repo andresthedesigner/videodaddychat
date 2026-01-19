@@ -1,0 +1,117 @@
+import { defineSchema, defineTable } from "convex/server"
+import { v } from "convex/values"
+
+export default defineSchema({
+  users: defineTable({
+    // Identity
+    clerkId: v.string(),
+    email: v.string(),
+    displayName: v.optional(v.string()),
+    profileImage: v.optional(v.string()),
+
+    // Status
+    anonymous: v.optional(v.boolean()),
+    premium: v.optional(v.boolean()),
+
+    // Usage tracking - regular models
+    messageCount: v.optional(v.number()),
+    dailyMessageCount: v.optional(v.number()),
+    dailyReset: v.optional(v.number()), // Unix timestamp
+
+    // Usage tracking - pro models
+    dailyProMessageCount: v.optional(v.number()),
+    dailyProReset: v.optional(v.number()), // Unix timestamp
+
+    // Activity
+    lastActiveAt: v.optional(v.number()), // Unix timestamp
+
+    // Preferences stored directly on user
+    favoriteModels: v.optional(v.array(v.string())),
+    systemPrompt: v.optional(v.string()),
+  })
+    .index("by_clerk_id", ["clerkId"])
+    .index("by_email", ["email"]),
+
+  chats: defineTable({
+    userId: v.id("users"),
+    title: v.optional(v.string()),
+    model: v.optional(v.string()),
+    systemPrompt: v.optional(v.string()),
+    projectId: v.optional(v.id("projects")),
+    public: v.boolean(),
+    pinned: v.boolean(),
+    pinnedAt: v.optional(v.number()), // Unix timestamp
+    updatedAt: v.optional(v.number()), // Unix timestamp for manual tracking
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_pinned", ["userId", "pinned"])
+    .index("by_project", ["projectId"]),
+
+  messages: defineTable({
+    chatId: v.id("chats"),
+    orderId: v.optional(v.number()), // For ordering within a chat
+    userId: v.optional(v.id("users")), // For user messages
+    role: v.union(
+      v.literal("user"),
+      v.literal("assistant"),
+      v.literal("system"),
+      v.literal("data")
+    ),
+    content: v.optional(v.string()),
+    parts: v.optional(v.any()), // AI SDK parts format
+    attachments: v.optional(v.array(v.any())), // experimental_attachments
+    messageGroupId: v.optional(v.string()), // For grouping related messages
+    model: v.optional(v.string()), // Model used for this message
+  })
+    .index("by_chat", ["chatId"])
+    .index("by_chat_role", ["chatId", "role"]),
+
+  projects: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+  }).index("by_user", ["userId"]),
+
+  userPreferences: defineTable({
+    userId: v.id("users"),
+    layout: v.optional(v.string()),
+    promptSuggestions: v.optional(v.boolean()),
+    showToolInvocations: v.optional(v.boolean()),
+    showConversationPreviews: v.optional(v.boolean()),
+    multiModelEnabled: v.optional(v.boolean()),
+    hiddenModels: v.optional(v.array(v.string())),
+  }).index("by_user", ["userId"]),
+
+  userKeys: defineTable({
+    userId: v.id("users"),
+    provider: v.string(),
+    encryptedKey: v.string(),
+    iv: v.string(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_provider", ["userId", "provider"]),
+
+  feedback: defineTable({
+    userId: v.id("users"),
+    message: v.string(),
+  }).index("by_user", ["userId"]),
+
+  // File attachments tracking
+  chatAttachments: defineTable({
+    chatId: v.id("chats"),
+    userId: v.id("users"),
+    storageId: v.optional(v.id("_storage")), // Convex storage reference
+    fileUrl: v.string(), // Public URL
+    fileName: v.optional(v.string()),
+    fileType: v.optional(v.string()),
+    fileSize: v.optional(v.number()),
+  })
+    .index("by_chat", ["chatId"])
+    .index("by_user", ["userId"]),
+
+  // Anonymous usage tracking (for rate limiting unauthenticated users)
+  anonymousUsage: defineTable({
+    anonymousId: v.string(), // Client-generated persistent ID
+    dailyMessageCount: v.number(),
+    dailyReset: v.number(), // Unix timestamp (start of day)
+  }).index("by_anonymous_id", ["anonymousId"]),
+})

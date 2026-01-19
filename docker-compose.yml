@@ -1,5 +1,5 @@
 services:
-  videodaddychat:
+  vid0:
     build:
       context: .
       dockerfile: Dockerfile

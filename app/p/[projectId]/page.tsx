@@ -1,37 +1,82 @@
+import { auth } from "@clerk/nextjs/server"
+import { ConvexHttpClient } from "convex/browser"
+import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { LayoutApp } from "@/app/components/layout/layout-app"
 import { ProjectView } from "@/app/p/[projectId]/project-view"
 import { MessagesProvider } from "@/lib/chat-store/messages/provider"
-import { isSupabaseEnabled } from "@/lib/supabase/config"
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
+
+// Lazy initialization to avoid build-time errors when env var is not set
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) {
+    throw new Error(
+      "NEXT_PUBLIC_CONVEX_URL is not set. Please configure it in your environment variables."
+    )
+  }
+  return new ConvexHttpClient(url)
+}
 
 type Props = {
   params: Promise<{ projectId: string }>
 }
 
+/**
+ * Helper to safely convert string to Convex ID
+ * Returns null if the string is not a valid Convex ID format
+ */
+function toConvexId(projectId: string): Id<"projects"> | null {
+  // Convex IDs are base64-like strings, typically 32 chars
+  // Basic validation to avoid throwing errors on invalid IDs
+  if (!projectId || projectId.length < 10) return null
+  try {
+    return projectId as Id<"projects">
+  } catch {
+    return null
+  }
+}
+
 export default async function Page({ params }: Props) {
   const { projectId } = await params
+  const { userId, getToken } = await auth()
 
-  if (isSupabaseEnabled) {
-    const supabase = await createClient()
-    if (supabase) {
-      const { data: userData, error: userError } = await supabase.auth.getUser()
-      if (userError || !userData?.user) {
-        redirect("/")
-      }
+  // Redirect to home if not authenticated
+  if (!userId) {
+    redirect("/")
+  }
 
-      // Verify the project belongs to the user
-      const { data: project, error: projectError } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", projectId)
-        .eq("user_id", userData.user.id)
-        .single()
+  // Validate project ID format
+  const convexId = toConvexId(projectId)
+  if (!convexId) {
+    notFound()
+  }
 
-      if (projectError || !project) {
-        redirect("/")
-      }
+  // Server-side ownership verification using authenticated query
+  // getById has built-in ownership checks and returns null if user doesn't own the project
+  let project
+  try {
+    const token = await getToken({ template: "convex" })
+    if (!token) {
+      // Can't get auth token - redirect to home
+      redirect("/")
     }
+
+    const convex = getConvexClient()
+    convex.setAuth(token)
+
+    project = await convex.query(api.projects.getById, {
+      projectId: convexId,
+    })
+  } catch {
+    // If query fails (e.g., invalid ID, network error), return 404
+    notFound()
+  }
+
+  // getById returns null if: project doesn't exist OR user doesn't own it
+  // This is intentional - we don't reveal project existence to non-owners
+  if (!project) {
+    notFound()
   }
 
   return (

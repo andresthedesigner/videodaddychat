@@ -19,14 +19,15 @@ export function ProjectChatItem({ chat, formatDate }: ProjectChatItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(chat.title || "")
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [prevChatTitle, setPrevChatTitle] = useState(chat.title)
   const inputRef = useRef<HTMLInputElement>(null)
-  const lastChatTitleRef = useRef(chat.title)
   const { updateTitle } = useChats()
   const isMobile = useBreakpoint(768)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
-  if (!isEditing && lastChatTitleRef.current !== chat.title) {
-    lastChatTitleRef.current = chat.title
+  // React 19 pattern: sync during render instead of useEffect
+  if (!isEditing && chat.title !== prevChatTitle) {
+    setPrevChatTitle(chat.title)
     setEditTitle(chat.title || "")
   }
 

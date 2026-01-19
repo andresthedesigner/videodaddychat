@@ -1,9 +1,11 @@
-import type { Database, Json } from "@/app/types/database.types"
-import type { Attachment } from "@ai-sdk/ui-utils"
-import type { SupabaseClient } from "@supabase/supabase-js"
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type SupabaseClientType = SupabaseClient<Database, "public", any>
+// JSON type for flexible data structures
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export interface ContentPart {
   type: string
@@ -34,25 +36,7 @@ export interface ChatApiParams {
   userId: string
   model: string
   isAuthenticated: boolean
-}
-
-export interface LogUserMessageParams {
-  supabase: SupabaseClientType
-  userId: string
-  chatId: string
-  content: string
-  attachments?: Attachment[]
-  model: string
-  isAuthenticated: boolean
-  message_group_id?: string
-}
-
-export interface StoreAssistantMessageParams {
-  supabase: SupabaseClientType
-  chatId: string
-  messages: Message[]
-  message_group_id?: string
-  model?: string
+  token?: string
 }
 
 export interface ApiErrorResponse {

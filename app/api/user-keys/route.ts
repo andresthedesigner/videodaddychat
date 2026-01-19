@@ -1,7 +1,23 @@
+import { auth } from "@clerk/nextjs/server"
+import { ConvexHttpClient } from "convex/browser"
+import { api } from "@/convex/_generated/api"
 import { encryptKey } from "@/lib/encryption"
-import { getModelsForProvider } from "@/lib/models"
-import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+
+/**
+ * User API Keys Management
+ * 
+ * Handles encryption/decryption of API keys and delegates storage to Convex.
+ */
+
+// Lazy initialization to avoid build-time errors when env vars aren't set
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) {
+    throw new Error("NEXT_PUBLIC_CONVEX_URL is not set")
+  }
+  return new ConvexHttpClient(url)
+}
 
 export async function POST(request: Request) {
   try {
@@ -14,99 +30,44 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = await createClient()
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Supabase not available" },
-        { status: 500 }
-      )
-    }
-
-    const { data: authData } = await supabase.auth.getUser()
-    if (!authData?.user?.id) {
+    const { userId, getToken } = await auth()
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Get JWT token for authenticated Convex mutation
+    const token = await getToken({ template: "convex" })
+    if (!token) {
+      return NextResponse.json(
+        { error: "Failed to get auth token" },
+        { status: 401 }
+      )
+    }
+
+    // Encrypt the key for storage
     const { encrypted, iv } = encryptKey(apiKey)
 
-    // Check if this is a new API key (not an update)
-    const { data: existingKey } = await supabase
-      .from("user_keys")
-      .select("provider")
-      .eq("user_id", authData.user.id)
-      .eq("provider", provider)
-      .single()
+    // Get Convex client and set auth
+    const convex = getConvexClient()
+    convex.setAuth(token)
 
+    // Check if key already exists for this provider
+    const existingKey = await convex.query(api.userKeys.getByProvider, {
+      provider,
+    })
     const isNewKey = !existingKey
 
-    // Save the API key
-    const { error } = await supabase.from("user_keys").upsert({
-      user_id: authData.user.id,
+    // Store the encrypted key in Convex
+    await convex.mutation(api.userKeys.upsert, {
       provider,
-      encrypted_key: encrypted,
+      encryptedKey: encrypted,
       iv,
-      updated_at: new Date().toISOString(),
     })
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    // If this is a new API key, add provider models to favorites
-    if (isNewKey) {
-      try {
-        // Get current user's favorite models
-        const { data: userData } = await supabase
-          .from("users")
-          .select("favorite_models")
-          .eq("id", authData.user.id)
-          .single()
-
-        const currentFavorites = userData?.favorite_models || []
-
-        // Get models for this provider
-        const providerModels = await getModelsForProvider(provider)
-        const providerModelIds = providerModels.map((model) => model.id)
-
-        // Skip if no models found for this provider
-        if (providerModelIds.length === 0) {
-          return NextResponse.json({
-            success: true,
-            isNewKey,
-            message: "API key saved",
-          })
-        }
-
-        // Add provider models to favorites (only if not already there)
-        const newModelsToAdd = providerModelIds.filter(
-          (modelId) => !currentFavorites.includes(modelId)
-        )
-
-        if (newModelsToAdd.length > 0) {
-          const updatedFavorites = [...currentFavorites, ...newModelsToAdd]
-
-          // Update user's favorite models
-          const { error: favoritesError } = await supabase
-            .from("users")
-            .update({ favorite_models: updatedFavorites })
-            .eq("id", authData.user.id)
-
-          if (favoritesError) {
-            console.error("Failed to update favorite models:", favoritesError)
-          }
-        }
-      } catch (modelsError) {
-        console.error("Failed to update favorite models:", modelsError)
-        // Don't fail the main request if favorite models update fails
-      }
-    }
 
     return NextResponse.json({
       success: true,
       isNewKey,
-      message: isNewKey
-        ? `API key saved and ${provider} models added to favorites`
-        : "API key updated",
+      message: `API key ${isNewKey ? "saved" : "updated"} successfully.`,
     })
   } catch (error) {
     console.error("Error in POST /api/user-keys:", error)
@@ -128,28 +89,25 @@ export async function DELETE(request: Request) {
       )
     }
 
-    const supabase = await createClient()
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Supabase not available" },
-        { status: 500 }
-      )
-    }
-
-    const { data: authData } = await supabase.auth.getUser()
-    if (!authData?.user?.id) {
+    const { userId, getToken } = await auth()
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { error } = await supabase
-      .from("user_keys")
-      .delete()
-      .eq("user_id", authData.user.id)
-      .eq("provider", provider)
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    // Get JWT token for authenticated Convex mutation
+    const token = await getToken({ template: "convex" })
+    if (!token) {
+      return NextResponse.json(
+        { error: "Failed to get auth token" },
+        { status: 401 }
+      )
     }
+
+    // Call Convex mutation to delete the key
+    const convex = getConvexClient()
+    convex.setAuth(token)
+
+    await convex.mutation(api.userKeys.remove, { provider })
 
     return NextResponse.json({ success: true })
   } catch (error) {

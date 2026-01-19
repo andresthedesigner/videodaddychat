@@ -6,6 +6,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react"
@@ -46,9 +47,23 @@ function Reasoning({
 }: ReasoningProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [wasAutoOpened, setWasAutoOpened] = useState(false)
+  const [prevIsStreaming, setPrevIsStreaming] = useState(isStreaming)
 
   const isControlled = open !== undefined
   const isOpen = isControlled ? open : internalOpen
+
+  // React 19 pattern: sync during render instead of useEffect
+  if (isStreaming !== prevIsStreaming) {
+    setPrevIsStreaming(isStreaming)
+    if (isStreaming && !wasAutoOpened) {
+      if (!isControlled) setInternalOpen(true)
+      setWasAutoOpened(true)
+    }
+    if (!isStreaming && wasAutoOpened) {
+      if (!isControlled) setInternalOpen(false)
+      setWasAutoOpened(false)
+    }
+  }
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!isControlled) {
@@ -56,18 +71,6 @@ function Reasoning({
     }
     onOpenChange?.(newOpen)
   }
-
-  useEffect(() => {
-    if (isStreaming && !wasAutoOpened) {
-      if (!isControlled) setInternalOpen(true)
-      setWasAutoOpened(true)
-    }
-
-    if (!isStreaming && wasAutoOpened) {
-      if (!isControlled) setInternalOpen(false)
-      setWasAutoOpened(false)
-    }
-  }, [isStreaming, wasAutoOpened, isControlled])
 
   return (
     <ReasoningContext.Provider
@@ -129,24 +132,27 @@ function ReasoningContent({
   const contentRef = useRef<HTMLDivElement>(null)
   const innerRef = useRef<HTMLDivElement>(null)
   const { isOpen } = useReasoningContext()
+  const [contentHeight, setContentHeight] = useState(0)
 
-  useEffect(() => {
-    if (!contentRef.current || !innerRef.current) return
+  // Use useLayoutEffect to measure height before paint
+  useLayoutEffect(() => {
+    if (!innerRef.current) return
 
-    const observer = new ResizeObserver(() => {
-      if (contentRef.current && innerRef.current && isOpen) {
-        contentRef.current.style.maxHeight = `${innerRef.current.scrollHeight}px`
+    const updateHeight = () => {
+      if (innerRef.current) {
+        setContentHeight(innerRef.current.scrollHeight)
       }
-    })
-
-    observer.observe(innerRef.current)
-
-    if (isOpen) {
-      contentRef.current.style.maxHeight = `${innerRef.current.scrollHeight}px`
     }
 
+    // Initial measurement
+    updateHeight()
+
+    // Observe for content changes
+    const observer = new ResizeObserver(updateHeight)
+    observer.observe(innerRef.current)
+
     return () => observer.disconnect()
-  }, [isOpen])
+  }, [children])
 
   const content = markdown ? (
     <Markdown>{children as string}</Markdown>
@@ -162,7 +168,7 @@ function ReasoningContent({
         className
       )}
       style={{
-        maxHeight: isOpen ? contentRef.current?.scrollHeight : "0px",
+        maxHeight: isOpen ? `${contentHeight}px` : "0px",
       }}
       {...props}
     >

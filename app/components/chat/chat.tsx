@@ -13,8 +13,8 @@ import { useUser } from "@/lib/user-store/provider"
 import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "motion/react"
 import dynamic from "next/dynamic"
-import { redirect } from "next/navigation"
-import { useCallback, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useChatCore } from "./use-chat-core"
 import { useChatOperations } from "./use-chat-operations"
 import { useFileUpload } from "./use-file-upload"
@@ -30,6 +30,7 @@ const DialogAuth = dynamic(
 )
 
 export function Chat() {
+  const router = useRouter()
   const { chatId } = useChatSession()
   const {
     createNewChat,
@@ -44,7 +45,7 @@ export function Chat() {
     [chatId, getChatById]
   )
 
-  const { messages: initialMessages, cacheAndAddMessage } = useMessages()
+  const { messages: initialMessages, cacheAndAddMessage, deleteMessagesFromTimestamp } = useMessages()
   const { user } = useUser()
   const { preferences } = useUserPreferences()
   const { draftValue, clearDraft } = useChatDraft(chatId)
@@ -108,7 +109,7 @@ export function Chat() {
     input,
     status,
     stop,
-    hasSentFirstMessageRef,
+    hasSentFirstMessage,
     isSubmitting,
     enableSearch,
     setEnableSearch,
@@ -133,6 +134,7 @@ export function Chat() {
     selectedModel,
     clearDraft,
     bumpChat,
+    deleteMessagesFromTimestamp,
   })
 
   // Memoize the conversation props to prevent unnecessary rerenders
@@ -202,19 +204,26 @@ export function Chat() {
     ]
   )
 
+  // Track if we should redirect - use ref to track if redirect was triggered
+  const hasRedirectedRef = useRef(false)
+
   // Handle redirect for invalid chatId - only redirect if we're certain the chat doesn't exist
   // and we're not in a transient state during chat creation
-  if (
-    chatId &&
-    !isChatsLoading &&
-    !currentChat &&
-    !isSubmitting &&
-    status === "ready" &&
-    messages.length === 0 &&
-    !hasSentFirstMessageRef.current // Don't redirect if we've already sent a message in this session
-  ) {
-    return redirect("/")
-  }
+  useEffect(() => {
+    if (
+      chatId &&
+      !isChatsLoading &&
+      !currentChat &&
+      !isSubmitting &&
+      status === "ready" &&
+      messages.length === 0 &&
+      !hasSentFirstMessage && // Don't redirect if we've already sent a message in this session
+      !hasRedirectedRef.current
+    ) {
+      hasRedirectedRef.current = true
+      router.replace("/")
+    }
+  }, [chatId, isChatsLoading, currentChat, isSubmitting, status, messages.length, hasSentFirstMessage, router])
 
   const showOnboarding = !chatId && messages.length === 0
 

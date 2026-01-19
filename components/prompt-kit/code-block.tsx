@@ -28,14 +28,12 @@ function CodeBlock({ children, className, ...props }: CodeBlockProps) {
 export type CodeBlockCodeProps = {
   code: string
   language?: string
-  theme?: string
   className?: string
 } & React.HTMLProps<HTMLDivElement>
 
 function CodeBlockCode({
   code,
   language = "tsx",
-  theme = "github-light",
   className,
   ...props
 }: CodeBlockCodeProps) {

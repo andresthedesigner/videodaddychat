@@ -44,6 +44,7 @@ export function Cursor({
       cursorX.set(window.innerWidth / 2);
       cursorY.set(window.innerHeight / 2);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Initial position should only be set once on mount
   }, []);
 
   useEffect(() => {
@@ -64,44 +65,35 @@ export function Cursor({
     return () => {
       document.removeEventListener('mousemove', updatePosition);
     };
-  }, [cursorX, cursorY, onPositionChange]);
+  }, [attachToParent, cursorX, cursorY, onPositionChange]);
 
   const cursorXSpring = useSpring(cursorX, springConfig || { duration: 0 });
   const cursorYSpring = useSpring(cursorY, springConfig || { duration: 0 });
 
   useEffect(() => {
-    const handleVisibilityChange = (visible: boolean) => {
-      setIsVisible(visible);
+    const currentRef = cursorRef.current;
+    
+    if (!attachToParent || !currentRef) return;
+    
+    const parent = currentRef.parentElement;
+    if (!parent) return;
+
+    const handleMouseEnter = () => {
+      parent.style.cursor = 'none';
+      setIsVisible(true);
     };
 
-    if (attachToParent && cursorRef.current) {
-      const parent = cursorRef.current.parentElement;
-      if (parent) {
-        parent.addEventListener('mouseenter', () => {
-          parent.style.cursor = 'none';
-          handleVisibilityChange(true);
-        });
-        parent.addEventListener('mouseleave', () => {
-          parent.style.cursor = 'auto';
-          handleVisibilityChange(false);
-        });
-      }
-    }
+    const handleMouseLeave = () => {
+      parent.style.cursor = 'auto';
+      setIsVisible(false);
+    };
+
+    parent.addEventListener('mouseenter', handleMouseEnter);
+    parent.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
-      if (attachToParent && cursorRef.current) {
-        const parent = cursorRef.current.parentElement;
-        if (parent) {
-          parent.removeEventListener('mouseenter', () => {
-            parent.style.cursor = 'none';
-            handleVisibilityChange(true);
-          });
-          parent.removeEventListener('mouseleave', () => {
-            parent.style.cursor = 'auto';
-            handleVisibilityChange(false);
-          });
-        }
-      }
+      parent.removeEventListener('mouseenter', handleMouseEnter);
+      parent.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, [attachToParent]);
 

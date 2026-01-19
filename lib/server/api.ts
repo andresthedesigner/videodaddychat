@@ -1,53 +1,28 @@
-import type { Database } from "@/app/types/database.types"
-import { createClient } from "@/lib/supabase/server"
-import { createGuestServerClient } from "@/lib/supabase/server-guest"
-import type { SupabaseClient } from "@supabase/supabase-js"
-import { isSupabaseEnabled } from "../supabase/config"
+/**
+ * Server-side API utilities
+ *
+ * Note: With Convex + Clerk, authentication is handled by:
+ * - Clerk middleware for route protection
+ * - Convex auth for database operations
+ *
+ * This file is kept for backward compatibility but most authentication
+ * logic is now handled by the Convex provider and Clerk.
+ */
 
 /**
  * Validates the user's identity
- * @param userId - The ID of the user.
- * @param isAuthenticated - Whether the user is authenticated.
- * @returns The Supabase client.
+ * @deprecated Use Convex queries with auth context instead
+ * @param _userId - The ID of the user (unused).
+ * @param _isAuthenticated - Whether the user is authenticated (unused).
+ * @returns null - Authentication is handled by Convex + Clerk.
  */
 export async function validateUserIdentity(
-  userId: string,
-  isAuthenticated: boolean
-): Promise<SupabaseClient<Database> | null> {
-  if (!isSupabaseEnabled) {
-    return null
-  }
-
-  const supabase = isAuthenticated
-    ? await createClient()
-    : await createGuestServerClient()
-
-  if (!supabase) {
-    throw new Error("Failed to initialize Supabase client")
-  }
-
-  if (isAuthenticated) {
-    const { data: authData, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !authData?.user?.id) {
-      throw new Error("Unable to get authenticated user")
-    }
-
-    if (authData.user.id !== userId) {
-      throw new Error("User ID does not match authenticated user")
-    }
-  } else {
-    const { data: userRecord, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("id", userId)
-      .eq("anonymous", true)
-      .maybeSingle()
-
-    if (userError || !userRecord) {
-      throw new Error("Invalid or missing guest user")
-    }
-  }
-
-  return supabase
+   
+  _userId: string,
+   
+  _isAuthenticated: boolean
+): Promise<null> {
+  // With Convex + Clerk, authentication is handled by the Convex provider
+  // User identity is validated via Clerk and the Convex auth context
+  return null
 }

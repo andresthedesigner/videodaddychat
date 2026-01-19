@@ -5,23 +5,21 @@ import { toast } from "@/components/ui/toast"
 import { useChats } from "@/lib/chat-store/chats/provider"
 import { useMessages } from "@/lib/chat-store/messages/provider"
 import { clearAllIndexedDBStores } from "@/lib/chat-store/persist"
-import { useUser } from "@/lib/user-store/provider"
+import { useClerk } from "@clerk/nextjs"
 import { SignOut } from "@phosphor-icons/react"
-import { useRouter } from "next/navigation"
 
 export function AccountManagement() {
-  const { signOut } = useUser()
+  const { signOut } = useClerk()
   const { resetChats } = useChats()
   const { resetMessages } = useMessages()
-  const router = useRouter()
 
   const handleSignOut = async () => {
     try {
       await resetMessages()
       await resetChats()
-      await signOut()
       await clearAllIndexedDBStores()
-      router.push("/")
+      // Clerk signOut handles session clearing and redirect
+      await signOut({ redirectUrl: "/" })
     } catch (e) {
       console.error("Sign out failed:", e)
       toast({ title: "Failed to sign out", status: "error" })

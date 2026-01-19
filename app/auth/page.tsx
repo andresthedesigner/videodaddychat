@@ -1,11 +1,19 @@
-import { isSupabaseEnabled } from "@/lib/supabase/config"
-import { notFound } from "next/navigation"
-import LoginPage from "./login-page"
+import { SignIn } from "@clerk/nextjs"
 
 export default function AuthPage() {
-  if (!isSupabaseEnabled) {
-    return notFound()
-  }
-
-  return <LoginPage />
+  return (
+    <div className="flex min-h-dvh items-center justify-center">
+      <SignIn
+        appearance={{
+          elements: {
+            rootBox: "mx-auto",
+            card: "shadow-none bg-transparent",
+          },
+        }}
+        routing="path"
+        path="/auth"
+        fallbackRedirectUrl="/"
+      />
+    </div>
+  )
 }

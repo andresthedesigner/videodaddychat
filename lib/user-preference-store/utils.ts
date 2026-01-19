@@ -9,6 +9,16 @@ export type UserPreferences = {
   hiddenModels: string[]
 }
 
+// API format uses snake_case
+export type UserPreferencesApiFormat = {
+  layout?: LayoutType
+  prompt_suggestions?: boolean
+  show_tool_invocations?: boolean
+  show_conversation_previews?: boolean
+  multi_model_enabled?: boolean
+  hidden_models?: string[]
+}
+
 export const defaultPreferences: UserPreferences = {
   layout: "fullscreen",
   promptSuggestions: true,
@@ -19,7 +29,7 @@ export const defaultPreferences: UserPreferences = {
 }
 
 // Helper functions to convert between API format (snake_case) and frontend format (camelCase)
-export function convertFromApiFormat(apiData: any): UserPreferences {
+export function convertFromApiFormat(apiData: UserPreferencesApiFormat): UserPreferences {
   return {
     layout: apiData.layout || "fullscreen",
     promptSuggestions: apiData.prompt_suggestions ?? true,
@@ -30,8 +40,8 @@ export function convertFromApiFormat(apiData: any): UserPreferences {
   }
 }
 
-export function convertToApiFormat(preferences: Partial<UserPreferences>) {
-  const apiData: any = {}
+export function convertToApiFormat(preferences: Partial<UserPreferences>): UserPreferencesApiFormat {
+  const apiData: UserPreferencesApiFormat = {}
   if (preferences.layout !== undefined) apiData.layout = preferences.layout
   if (preferences.promptSuggestions !== undefined)
     apiData.prompt_suggestions = preferences.promptSuggestions

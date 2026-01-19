@@ -26,13 +26,11 @@ type UseChatCoreProps = {
   checkLimitsAndNotify: (uid: string) => Promise<boolean>
   cleanupOptimisticAttachments: (attachments?: Array<{ url?: string }>) => void
   ensureChatExists: (uid: string, input: string) => Promise<string | null>
-  handleFileUploads: (
-    uid: string,
-    chatId: string
-  ) => Promise<Attachment[] | null>
+  handleFileUploads: (chatId: string) => Promise<Attachment[] | null>
   selectedModel: string
   clearDraft: () => void
   bumpChat: (chatId: string) => void
+  deleteMessagesFromTimestamp: (timestamp: number) => Promise<void>
 }
 
 export function useChatCore({
@@ -51,14 +49,15 @@ export function useChatCore({
   selectedModel,
   clearDraft,
   bumpChat,
+  deleteMessagesFromTimestamp,
 }: UseChatCoreProps) {
   // State management
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasDialogAuth, setHasDialogAuth] = useState(false)
   const [enableSearch, setEnableSearch] = useState(false)
 
-  // Refs and derived state
-  const hasSentFirstMessageRef = useRef(false)
+  // State for tracking first message sent (prevents redirect after sending)
+  const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false)
   const prevChatIdRef = useRef<string | null>(chatId)
   const isAuthenticated = useMemo(() => !!user?.id, [user?.id])
   const systemPrompt = useMemo(
@@ -199,7 +198,7 @@ export function useChatCore({
 
       let attachments: Attachment[] | null = []
       if (submittedFiles.length > 0) {
-        attachments = await handleFileUploads(uid, currentChatId)
+        attachments = await handleFileUploads(currentChatId)
         if (attachments === null) {
           setMessages((prev) => prev.filter((m) => m.id !== optimisticId))
           cleanupOptimisticAttachments(
@@ -222,6 +221,7 @@ export function useChatCore({
       }
 
       handleSubmit(undefined, options)
+      setHasSentFirstMessage(true) // Prevent redirect during chat creation
       setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
       cleanupOptimisticAttachments(optimisticMessage.experimental_attachments)
       cacheAndAddMessage(optimisticMessage)
@@ -289,8 +289,8 @@ export function useChatCore({
       }
 
       const target = messages[editIndex]
-      const cutoffIso = target?.createdAt?.toISOString()
-      if (!cutoffIso) {
+      const cutoffTimestamp = target?.createdAt?.getTime()
+      if (!cutoffTimestamp) {
         console.error("Unable to locate message timestamp.")
         return
       }
@@ -319,15 +319,7 @@ export function useChatCore({
         const trimmedMessages = messages.slice(0, editIndex)
         setMessages([...trimmedMessages, optimisticEditedMessage])
 
-        try {
-          const { writeToIndexedDB } = await import("@/lib/chat-store/persist")
-          await writeToIndexedDB("messages", {
-            id: chatId,
-            messages: trimmedMessages,
-          })
-        } catch {}
-
-        // Get user validation
+        // Get user validation first (before any permanent deletions)
         const uid = await getOrCreateGuestUserId(user)
         if (!uid) {
           setMessages(originalMessages)
@@ -349,6 +341,20 @@ export function useChatCore({
 
         prevChatIdRef.current = currentChatId
 
+        // Only persist deletions AFTER all validation passes
+        // This prevents data loss if the edit is rejected
+        try {
+          const { writeToIndexedDB } = await import("@/lib/chat-store/persist")
+          await writeToIndexedDB("messages", {
+            id: chatId,
+            messages: trimmedMessages,
+          })
+        } catch {}
+
+        // Delete messages from the edit point in Convex database
+        // This ensures subsequent messages are removed from persistent storage
+        await deleteMessagesFromTimestamp(cutoffTimestamp)
+
         const options = {
           body: {
             chatId: currentChatId,
@@ -357,7 +363,6 @@ export function useChatCore({
             isAuthenticated,
             systemPrompt: systemPrompt || SYSTEM_PROMPT_DEFAULT,
             enableSearch,
-            editCutoffTimestamp: cutoffIso, // Backend will delete messages from this timestamp
           },
           experimental_attachments:
             target.experimental_attachments || undefined,
@@ -404,6 +409,7 @@ export function useChatCore({
       updateTitle,
       isSubmitting,
       status,
+      deleteMessagesFromTimestamp,
     ]
   )
 
@@ -461,6 +467,7 @@ export function useChatCore({
           },
           options
         )
+        setHasSentFirstMessage(true) // Prevent redirect during chat creation
         setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
       } catch {
         setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
@@ -525,7 +532,8 @@ export function useChatCore({
     append,
     isAuthenticated,
     systemPrompt,
-    hasSentFirstMessageRef,
+    hasSentFirstMessage,
+    setHasSentFirstMessage,
 
     // Component state
     isSubmitting,

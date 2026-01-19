@@ -1,12 +1,15 @@
 "use client"
 
+import { api } from "@/convex/_generated/api"
 import { fetchClient } from "@/lib/fetch"
 import { ModelConfig } from "@/lib/models/types"
+import { useQuery } from "convex/react"
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react"
 
@@ -19,6 +22,16 @@ type UserKeyStatus = {
   xai: boolean
   anthropic: boolean
   [key: string]: boolean // Allow for additional providers
+}
+
+const DEFAULT_KEY_STATUS: UserKeyStatus = {
+  openrouter: false,
+  openai: false,
+  mistral: false,
+  google: false,
+  perplexity: false,
+  xai: false,
+  anthropic: false,
 }
 
 type ModelContextType = {
@@ -36,50 +49,53 @@ type ModelContextType = {
 const ModelContext = createContext<ModelContextType | undefined>(undefined)
 
 export function ModelProvider({ children }: { children: React.ReactNode }) {
-  const [models, setModels] = useState<ModelConfig[]>([])
-  const [userKeyStatus, setUserKeyStatus] = useState<UserKeyStatus>({
-    openrouter: false,
-    openai: false,
-    mistral: false,
-    google: false,
-    perplexity: false,
-    xai: false,
-    anthropic: false,
-  })
+  const [rawModels, setRawModels] = useState<ModelConfig[]>([])
   const [favoriteModels, setFavoriteModels] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  // Fetch provider status from Convex (reactive query)
+  // Uses getProviderStatus which returns only provider identifiers, not encrypted key material
+  const providers = useQuery(api.userKeys.getProviderStatus)
+
+  // Transform provider array into status object
+  const userKeyStatus = useMemo<UserKeyStatus>(() => {
+    if (!providers) return DEFAULT_KEY_STATUS
+
+    return providers.reduce(
+      (acc, provider) => {
+        acc[provider] = true
+        return acc
+      },
+      { ...DEFAULT_KEY_STATUS }
+    )
+  }, [providers])
+
+  // Enhance model accessibility based on user's API keys
+  // Models are accessible if: already marked accessible (free) OR user has the provider's API key
+  const models = useMemo<ModelConfig[]>(() => {
+    return rawModels.map((model) => {
+      // If model is already accessible (free model), keep it
+      if (model.accessible) return model
+
+      // Check if user has API key for this model's provider
+      const hasProviderKey = userKeyStatus[model.providerId] === true
+
+      return {
+        ...model,
+        accessible: hasProviderKey,
+      }
+    })
+  }, [rawModels, userKeyStatus])
 
   const fetchModels = useCallback(async () => {
     try {
       const response = await fetchClient("/api/models")
       if (response.ok) {
         const data = await response.json()
-        setModels(data.models || [])
+        setRawModels(data.models || [])
       }
     } catch (error) {
       console.error("Failed to fetch models:", error)
-    }
-  }, [])
-
-  const fetchUserKeyStatus = useCallback(async () => {
-    try {
-      const response = await fetchClient("/api/user-key-status")
-      if (response.ok) {
-        const data = await response.json()
-        setUserKeyStatus(data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch user key status:", error)
-      // Set default values on error
-      setUserKeyStatus({
-        openrouter: false,
-        openai: false,
-        mistral: false,
-        google: false,
-        perplexity: false,
-        xai: false,
-        anthropic: false,
-      })
     }
   }, [])
 
@@ -107,14 +123,12 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchModels])
 
+  // User key status is now reactive via Convex useQuery
+  // This function is kept for API compatibility but is a no-op
   const refreshUserKeyStatus = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      await fetchUserKeyStatus()
-    } finally {
-      setIsLoading(false)
-    }
-  }, [fetchUserKeyStatus])
+    // Convex queries are reactive - no manual refresh needed
+    // userKeyStatus updates automatically when userKeys changes
+  }, [])
 
   const refreshFavoriteModels = useCallback(async () => {
     setIsLoading(true)
@@ -139,21 +153,25 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
   const refreshAll = useCallback(async () => {
     setIsLoading(true)
     try {
-      await Promise.all([
-        fetchModels(),
-        fetchUserKeyStatus(),
-        fetchFavoriteModels(),
-      ])
+      // User key status is reactive via Convex, no need to fetch manually
+      await Promise.all([fetchModels(), fetchFavoriteModels()])
     } finally {
       setIsLoading(false)
     }
-  }, [fetchModels, fetchUserKeyStatus, fetchFavoriteModels])
+  }, [fetchModels, fetchFavoriteModels])
 
-  // Initial data fetch
+  // Initial data fetch for non-Convex data
   useEffect(() => {
-    refreshAll()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Only run once on mount
+    const initFetch = async () => {
+      setIsLoading(true)
+      try {
+        await Promise.all([fetchModels(), fetchFavoriteModels()])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    initFetch()
+  }, [fetchModels, fetchFavoriteModels])
 
   return (
     <ModelContext.Provider

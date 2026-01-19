@@ -1,7 +1,8 @@
 "use client"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { createContext, ReactNode, useContext } from "react"
+import { api } from "@/convex/_generated/api"
+import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react"
+import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from "react"
 import {
   convertFromApiFormat,
   convertToApiFormat,
@@ -35,34 +36,6 @@ interface UserPreferencesContextType {
 const UserPreferencesContext = createContext<
   UserPreferencesContextType | undefined
 >(undefined)
-
-async function fetchUserPreferences(): Promise<UserPreferences> {
-  const response = await fetch("/api/user-preferences")
-  if (!response.ok) {
-    throw new Error("Failed to fetch user preferences")
-  }
-  const data = await response.json()
-  return convertFromApiFormat(data)
-}
-
-async function updateUserPreferences(
-  update: Partial<UserPreferences>
-): Promise<UserPreferences> {
-  const response = await fetch("/api/user-preferences", {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(convertToApiFormat(update)),
-  })
-
-  if (!response.ok) {
-    throw new Error("Failed to update user preferences")
-  }
-
-  const data = await response.json()
-  return convertFromApiFormat(data)
-}
 
 function getLocalStoragePreferences(): UserPreferences {
   if (typeof window === "undefined") return defaultPreferences
@@ -100,129 +73,149 @@ export function UserPreferencesProvider({
   initialPreferences?: UserPreferences
 }) {
   const isAuthenticated = !!userId
-  const queryClient = useQueryClient()
 
-  // Merge initial preferences with defaults
-  const getInitialData = (): UserPreferences => {
-    if (initialPreferences && isAuthenticated) {
-      return initialPreferences
+  // Convex real-time query for authenticated users
+  const convexPreferences = useConvexQuery(
+    api.userPreferences.get,
+    isAuthenticated ? {} : "skip"
+  )
+
+  // Convex mutation for updating preferences
+  const updatePreferencesMutation = useConvexMutation(api.userPreferences.update)
+
+  // Track optimistic updates (pending changes)
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Partial<UserPreferences>>({})
+
+  // Derive server preferences from Convex data
+  const serverPreferences: UserPreferences = useMemo(() => {
+    if (convexPreferences && isAuthenticated) {
+      return {
+        layout: (convexPreferences.layout as LayoutType) || defaultPreferences.layout,
+        promptSuggestions: convexPreferences.promptSuggestions ?? defaultPreferences.promptSuggestions,
+        showToolInvocations: convexPreferences.showToolInvocations ?? defaultPreferences.showToolInvocations,
+        showConversationPreviews: convexPreferences.showConversationPreviews ?? defaultPreferences.showConversationPreviews,
+        multiModelEnabled: convexPreferences.multiModelEnabled ?? defaultPreferences.multiModelEnabled,
+        hiddenModels: convexPreferences.hiddenModels ?? defaultPreferences.hiddenModels,
+      }
     }
+    return defaultPreferences
+  }, [convexPreferences, isAuthenticated])
 
-    if (!isAuthenticated) {
+  // For unauthenticated users, use localStorage
+  const [localStoragePrefs, setLocalStoragePrefs] = useState<UserPreferences>(() => {
+    if (typeof window !== "undefined" && !isAuthenticated) {
       return getLocalStoragePreferences()
     }
-
-    return defaultPreferences
-  }
-
-  // Query for user preferences
-  const { data: preferences = getInitialData(), isLoading } =
-    useQuery<UserPreferences>({
-      queryKey: ["user-preferences", userId],
-      queryFn: async () => {
-        if (!isAuthenticated) {
-          return getLocalStoragePreferences()
-        }
-
-        try {
-          return await fetchUserPreferences()
-        } catch (error) {
-          console.error(
-            "Failed to fetch user preferences, falling back to localStorage:",
-            error
-          )
-          return getLocalStoragePreferences()
-        }
-      },
-      enabled: typeof window !== "undefined",
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: (failureCount, error) => {
-        // Only retry for authenticated users and network errors
-        return isAuthenticated && failureCount < 2
-      },
-      // Use initial data if available to avoid unnecessary API calls
-      initialData:
-        initialPreferences && isAuthenticated ? getInitialData() : undefined,
-    })
-
-  // Mutation for updating preferences
-  const mutation = useMutation({
-    mutationFn: async (update: Partial<UserPreferences>) => {
-      const updated = { ...preferences, ...update }
-
-      if (!isAuthenticated) {
-        saveToLocalStorage(updated)
-        return updated
-      }
-
-      try {
-        return await updateUserPreferences(update)
-      } catch (error) {
-        console.error(
-          "Failed to update user preferences in database, falling back to localStorage:",
-          error
-        )
-        saveToLocalStorage(updated)
-        return updated
-      }
-    },
-    onMutate: async (update) => {
-      const queryKey = ["user-preferences", userId]
-      await queryClient.cancelQueries({ queryKey })
-
-      const previous = queryClient.getQueryData<UserPreferences>(queryKey)
-      const optimistic = { ...previous, ...update }
-      queryClient.setQueryData(queryKey, optimistic)
-
-      return { previous }
-    },
-    onError: (_err, _update, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(["user-preferences", userId], context.previous)
-      }
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["user-preferences", userId], data)
-    },
+    return initialPreferences || defaultPreferences
   })
 
-  const updatePreferences = mutation.mutate
-
-  const setLayout = (layout: LayoutType) => {
-    if (isAuthenticated || layout === "fullscreen") {
-      updatePreferences({ layout })
+  // Derive final preferences: server data + optimistic updates (for authenticated)
+  // or localStorage prefs (for unauthenticated)
+  const preferences = useMemo(() => {
+    if (isAuthenticated) {
+      return { ...serverPreferences, ...optimisticUpdates }
     }
-  }
+    return localStoragePrefs
+  }, [isAuthenticated, serverPreferences, optimisticUpdates, localStoragePrefs])
 
-  const setPromptSuggestions = (enabled: boolean) => {
-    updatePreferences({ promptSuggestions: enabled })
-  }
+  const isLoading = isAuthenticated && convexPreferences === undefined
 
-  const setShowToolInvocations = (enabled: boolean) => {
-    updatePreferences({ showToolInvocations: enabled })
-  }
+  // Update preferences handler
+  const updatePreferences = useCallback(
+    async (update: Partial<UserPreferences>) => {
+      if (!isAuthenticated) {
+        // For unauthenticated users, update localStorage directly
+        const updated = { ...localStoragePrefs, ...update }
+        setLocalStoragePrefs(updated)
+        saveToLocalStorage(updated)
+        return
+      }
 
-  const setShowConversationPreviews = (enabled: boolean) => {
-    updatePreferences({ showConversationPreviews: enabled })
-  }
+      // For authenticated users, use optimistic updates
+      setOptimisticUpdates((prev) => ({ ...prev, ...update }))
 
-  const setMultiModelEnabled = (enabled: boolean) => {
-    updatePreferences({ multiModelEnabled: enabled })
-  }
+      try {
+        // Persist to Convex for authenticated users
+        await updatePreferencesMutation(update)
+        // Clear optimistic update on success (server data will reflect the change)
+        setOptimisticUpdates((prev) => {
+          const next = { ...prev }
+          for (const key of Object.keys(update)) {
+            delete next[key as keyof UserPreferences]
+          }
+          return next
+        })
+      } catch (error) {
+        console.error("Failed to update user preferences in Convex:", error)
+        // Revert optimistic update on error
+        setOptimisticUpdates((prev) => {
+          const next = { ...prev }
+          for (const key of Object.keys(update)) {
+            delete next[key as keyof UserPreferences]
+          }
+          return next
+        })
+      }
+    },
+    [isAuthenticated, localStoragePrefs, updatePreferencesMutation]
+  )
 
-  const toggleModelVisibility = (modelId: string) => {
-    const currentHidden = preferences.hiddenModels || []
-    const isHidden = currentHidden.includes(modelId)
-    const newHidden = isHidden
-      ? currentHidden.filter((id) => id !== modelId)
-      : [...currentHidden, modelId]
+  const setLayout = useCallback(
+    (layout: LayoutType) => {
+      if (isAuthenticated || layout === "fullscreen") {
+        updatePreferences({ layout })
+      }
+    },
+    [isAuthenticated, updatePreferences]
+  )
 
-    updatePreferences({ hiddenModels: newHidden })
-  }
+  const setPromptSuggestions = useCallback(
+    (enabled: boolean) => {
+      updatePreferences({ promptSuggestions: enabled })
+    },
+    [updatePreferences]
+  )
 
-  const isModelHidden = (modelId: string) => {
-    return (preferences.hiddenModels || []).includes(modelId)
-  }
+  const setShowToolInvocations = useCallback(
+    (enabled: boolean) => {
+      updatePreferences({ showToolInvocations: enabled })
+    },
+    [updatePreferences]
+  )
+
+  const setShowConversationPreviews = useCallback(
+    (enabled: boolean) => {
+      updatePreferences({ showConversationPreviews: enabled })
+    },
+    [updatePreferences]
+  )
+
+  const setMultiModelEnabled = useCallback(
+    (enabled: boolean) => {
+      updatePreferences({ multiModelEnabled: enabled })
+    },
+    [updatePreferences]
+  )
+
+  const toggleModelVisibility = useCallback(
+    (modelId: string) => {
+      const currentHidden = preferences.hiddenModels || []
+      const isHidden = currentHidden.includes(modelId)
+      const newHidden = isHidden
+        ? currentHidden.filter((id) => id !== modelId)
+        : [...currentHidden, modelId]
+
+      updatePreferences({ hiddenModels: newHidden })
+    },
+    [preferences.hiddenModels, updatePreferences]
+  )
+
+  const isModelHidden = useCallback(
+    (modelId: string) => {
+      return (preferences.hiddenModels || []).includes(modelId)
+    },
+    [preferences.hiddenModels]
+  )
 
   return (
     <UserPreferencesContext.Provider

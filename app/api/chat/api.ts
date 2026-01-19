@@ -1,25 +1,83 @@
-import { saveFinalAssistantMessage } from "@/app/api/chat/db"
-import type {
-  ChatApiParams,
-  LogUserMessageParams,
-  StoreAssistantMessageParams,
-  SupabaseClientType,
-} from "@/app/types/api.types"
+import type { ChatApiParams } from "@/app/types/api.types"
 import { FREE_MODELS_IDS, NON_AUTH_ALLOWED_MODELS } from "@/lib/config"
 import { getProviderForModel } from "@/lib/openproviders/provider-map"
-import { sanitizeUserInput } from "@/lib/sanitize"
-import { validateUserIdentity } from "@/lib/server/api"
-import { checkUsageByModel, incrementUsage } from "@/lib/usage"
-import { getUserKey, type ProviderWithoutOllama } from "@/lib/user-keys"
+import { hasUserKey, type ProviderWithoutOllama } from "@/lib/user-keys"
+import { fetchQuery, fetchMutation } from "convex/nextjs"
+import { api } from "@/convex/_generated/api"
 
+/**
+ * Check if a model is a "pro" model (requires more stringent limits)
+ */
+export function isProModel(modelId: string): boolean {
+  return !FREE_MODELS_IDS.includes(modelId)
+}
+
+/**
+ * Server-side usage check using Convex with authenticated token
+ * This enforces rate limits before allowing the request to proceed
+ *
+ * @param token - Clerk auth token (undefined for anonymous users)
+ * @param modelId - The model being used
+ * @param anonymousId - Client-generated ID for anonymous users (required if no token)
+ */
+export async function checkServerSideUsage(
+  token: string | undefined,
+  modelId: string,
+  anonymousId?: string
+): Promise<void> {
+  const isPro = isProModel(modelId)
+
+  const usage = await fetchQuery(
+    api.usage.checkUsage,
+    { isProModel: isPro, anonymousId },
+    { token }
+  )
+
+  if (!usage.canSend) {
+    // Surface specific error messages (e.g., "User not found", "Anonymous ID required")
+    // before falling back to the generic rate limit message
+    if (usage.error) {
+      throw new Error(usage.error)
+    }
+    const modelType = isPro ? "pro model" : "message"
+    throw new Error(
+      `Daily ${modelType} limit reached (${usage.limit}). Please try again tomorrow or upgrade your plan.`
+    )
+  }
+}
+
+/**
+ * Server-side usage increment using Convex with authenticated token
+ * This is called after successful validation to track usage
+ *
+ * @param token - Clerk auth token (undefined for anonymous users)
+ * @param modelId - The model being used
+ * @param anonymousId - Client-generated ID for anonymous users (required if no token)
+ */
+export async function incrementServerSideUsage(
+  token: string | undefined,
+  modelId: string,
+  anonymousId?: string
+): Promise<void> {
+  const isPro = isProModel(modelId)
+
+  await fetchMutation(
+    api.usage.incrementUsage,
+    { isProModel: isPro, anonymousId },
+    { token }
+  )
+}
+
+/**
+ * Validate user access to model and check for required API keys
+ * Note: Usage rate-limiting is now enforced via checkServerSideUsage
+ */
 export async function validateAndTrackUsage({
   userId,
   model,
   isAuthenticated,
-}: ChatApiParams): Promise<SupabaseClientType | null> {
-  const supabase = await validateUserIdentity(userId, isAuthenticated)
-  if (!supabase) return null
-
+  token,
+}: ChatApiParams): Promise<null> {
   // Check if user is authenticated
   if (!isAuthenticated) {
     // For unauthenticated users, only allow specific models
@@ -33,13 +91,11 @@ export async function validateAndTrackUsage({
     const provider = getProviderForModel(model)
 
     if (provider !== "ollama") {
-      const userApiKey = await getUserKey(
-        userId,
-        provider as ProviderWithoutOllama
-      )
+      // Check if user has their own API key for this provider
+      const hasKey = await hasUserKey(provider as ProviderWithoutOllama, token)
 
       // If no API key and model is not in free list, deny access
-      if (!userApiKey && !FREE_MODELS_IDS.includes(model)) {
+      if (!hasKey && !FREE_MODELS_IDS.includes(model)) {
         throw new Error(
           `This model requires an API key for ${provider}. Please add your API key in settings or use a free model.`
         )
@@ -47,72 +103,6 @@ export async function validateAndTrackUsage({
     }
   }
 
-  // Check usage limits for the model
-  await checkUsageByModel(supabase, userId, model, isAuthenticated)
-
-  return supabase
-}
-
-export async function incrementMessageCount({
-  supabase,
-  userId,
-}: {
-  supabase: SupabaseClientType
-  userId: string
-}): Promise<void> {
-  if (!supabase) return
-
-  try {
-    await incrementUsage(supabase, userId)
-  } catch (err) {
-    console.error("Failed to increment message count:", err)
-    // Don't throw error as this shouldn't block the chat
-  }
-}
-
-export async function logUserMessage({
-  supabase,
-  userId,
-  chatId,
-  content,
-  attachments,
-  model,
-  isAuthenticated,
-  message_group_id,
-}: LogUserMessageParams): Promise<void> {
-  if (!supabase) return
-
-  const { error } = await supabase.from("messages").insert({
-    chat_id: chatId,
-    role: "user",
-    content: sanitizeUserInput(content),
-    experimental_attachments: attachments,
-    user_id: userId,
-    message_group_id,
-  })
-
-  if (error) {
-    console.error("Error saving user message:", error)
-  }
-}
-
-export async function storeAssistantMessage({
-  supabase,
-  chatId,
-  messages,
-  message_group_id,
-  model,
-}: StoreAssistantMessageParams): Promise<void> {
-  if (!supabase) return
-  try {
-    await saveFinalAssistantMessage(
-      supabase,
-      chatId,
-      messages,
-      message_group_id,
-      model
-    )
-  } catch (err) {
-    console.error("Failed to save assistant messages:", err)
-  }
+  void userId // userId kept for type compatibility but not used here
+  return null
 }

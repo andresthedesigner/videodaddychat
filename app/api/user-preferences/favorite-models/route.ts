@@ -1,25 +1,36 @@
-import { createClient } from "@/lib/supabase/server"
+import { auth } from "@clerk/nextjs/server"
+import { ConvexHttpClient } from "convex/browser"
+import { api } from "@/convex/_generated/api"
 import { NextRequest, NextResponse } from "next/server"
+
+/**
+ * Favorite Models API
+ * Fetches and updates favorite models via Convex
+ */
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) {
+    throw new Error("NEXT_PUBLIC_CONVEX_URL is not set")
+  }
+  return new ConvexHttpClient(url)
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const { userId, getToken } = await auth()
 
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database connection failed" },
-        { status: 500 }
-      )
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get the current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    // Get JWT token for authenticated Convex mutation
+    const token = await getToken({ template: "convex" })
+    if (!token) {
+      return NextResponse.json(
+        { error: "Failed to get auth token" },
+        { status: 401 }
+      )
     }
 
     // Parse the request body
@@ -42,27 +53,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update the user's favorite models
-    const { data, error } = await supabase
-      .from("users")
-      .update({
-        favorite_models,
-      })
-      .eq("id", user.id)
-      .select("favorite_models")
-      .single()
-
-    if (error) {
-      console.error("Error updating favorite models:", error)
-      return NextResponse.json(
-        { error: "Failed to update favorite models" },
-        { status: 500 }
-      )
-    }
+    // Update favorite models in Convex with authenticated client
+    const convex = getConvexClient()
+    convex.setAuth(token)
+    await convex.mutation(api.users.updateFavoriteModels, {
+      favoriteModels: favorite_models,
+    })
 
     return NextResponse.json({
       success: true,
-      favorite_models: data.favorite_models,
+      favorite_models,
     })
   } catch (error) {
     console.error("Error in favorite-models API:", error)
@@ -75,42 +75,28 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const { userId, getToken } = await auth()
 
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database connection failed" },
-        { status: 500 }
-      )
-    }
-
-    // Get the current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get the user's favorite models
-    const { data, error } = await supabase
-      .from("users")
-      .select("favorite_models")
-      .eq("id", user.id)
-      .single()
-
-    if (error) {
-      console.error("Error fetching favorite models:", error)
+    // Get JWT token for authenticated Convex query
+    const token = await getToken({ template: "convex" })
+    if (!token) {
       return NextResponse.json(
-        { error: "Failed to fetch favorite models" },
-        { status: 500 }
+        { error: "Failed to get auth token" },
+        { status: 401 }
       )
     }
 
+    // Fetch user's favorite models from Convex with authenticated client
+    const convex = getConvexClient()
+    convex.setAuth(token)
+    const user = await convex.query(api.users.getCurrent, {})
+
     return NextResponse.json({
-      favorite_models: data.favorite_models || [],
+      favorite_models: user?.favoriteModels ?? [],
     })
   } catch (error) {
     console.error("Error in favorite-models GET API:", error)

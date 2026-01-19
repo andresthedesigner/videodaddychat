@@ -6,7 +6,7 @@ import { Loader } from "@/components/prompt-kit/loader"
 import { ScrollButton } from "@/components/prompt-kit/scroll-button"
 import { ExtendedMessageAISDK } from "@/lib/chat-store/messages/api"
 import { Message as MessageType } from "@ai-sdk/react"
-import { useRef } from "react"
+import { useState } from "react"
 import { Message } from "./message"
 
 type ConversationProps = {
@@ -28,7 +28,8 @@ export function Conversation({
   onQuote,
   isUserAuthenticated,
 }: ConversationProps) {
-  const initialMessageCount = useRef(messages.length)
+  // Use state to capture initial message count once on mount
+  const [initialCount] = useState(() => messages.length)
 
   if (!messages || messages.length === 0)
     return <div className="h-full w-full"></div>
@@ -50,8 +51,7 @@ export function Conversation({
           {messages?.map((message, index) => {
             const isLast =
               index === messages.length - 1 && status !== "submitted"
-            const hasScrollAnchor =
-              isLast && messages.length > initialMessageCount.current
+            const hasScrollAnchor = isLast && messages.length > initialCount
 
             return (
               <Message

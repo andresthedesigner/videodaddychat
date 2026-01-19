@@ -1,4 +1,4 @@
-# Video Daddy Chat
+# vid0
 
 AI-powered chat platform for YouTube content creators. Data-driven recommendations for scripts, titles, and thumbnails.
 
@@ -58,7 +58,7 @@ lib/                  # Shared utilities
 └── openproviders/    # AI provider abstraction
 
 components/           # Shadcn UI components
-convex/               # DB schema & functions <!-- TODO -->
+convex/               # Convex DB schema & functions
 ```
 
 ## Gold Standard Examples
@@ -101,6 +101,11 @@ Follow these patterns when creating new code:
 - Force push
 - Commit secrets
 - Modify prod configs without review
+- **Disable lint rules or type checks** — Fix the underlying issue instead
+- **Set ESLint rules to "off" or "warn"** to bypass errors — Always fix at source
+- **Add `// @ts-ignore` or `// @ts-expect-error`** without a linked issue
+- **Add `eslint-disable` comments** without explicit approval and documented reason
+- **Downgrade dependencies** to avoid lint/type errors
 
 ## Security
 
@@ -119,16 +124,28 @@ Skip: UI rendering tests, animations, AI response quality.
 - **MVP:** YouTube Data API v3 (public data, 10K units/day)
 - **Phase 2:** YouTube Analytics API (creator metrics, OAuth)
 
-## Environment Variables <!-- TODO: Finalize after migration -->
+## Environment Variables
 
 ```bash
+# Authentication (Clerk)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
+CLERK_JWT_ISSUER_DOMAIN=
+
+# Database (Convex)
 CONVEX_DEPLOYMENT=
 NEXT_PUBLIC_CONVEX_URL=
+
+# Security
+CSRF_SECRET=
+ENCRYPTION_KEY=
+
+# AI Providers (at least one required)
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 ```
+
+See `.env.example` for complete documentation.
 
 ---
 

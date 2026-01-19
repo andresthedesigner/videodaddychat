@@ -8,14 +8,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import type { Id } from "@/convex/_generated/dataModel"
 import { DotsThree, PencilSimple, Trash } from "@phosphor-icons/react"
 import { useState } from "react"
 
 type Project = {
-  id: string
+  _id: Id<"projects">
   name: string
-  user_id: string
-  created_at: string
 }
 
 type SidebarProjectMenuProps = {

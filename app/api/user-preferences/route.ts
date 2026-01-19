@@ -1,61 +1,42 @@
-import { createClient } from "@/lib/supabase/server"
-import { NextRequest, NextResponse } from "next/server"
+import { auth } from "@clerk/nextjs/server"
+import { NextResponse } from "next/server"
+
+/**
+ * DEPRECATED: User preferences are now managed via Convex client-side hooks.
+ * 
+ * This endpoint is kept for backward compatibility but clients should use:
+ * - useQuery(api.userPreferences.get) for reading
+ * - useMutation(api.userPreferences.update) for writing
+ * 
+ * See: lib/user-preference-store/provider.tsx
+ */
+
+const defaultPreferences = {
+  layout: "fullscreen",
+  promptSuggestions: true,
+  showToolInvocations: true,
+  showConversationPreviews: true,
+  multiModelEnabled: false,
+  hiddenModels: [],
+}
 
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const { userId } = await auth()
 
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database connection failed" },
-        { status: 500 }
-      )
-    }
-
-    // Get the current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get the user's preferences
-    const { data, error } = await supabase
-      .from("user_preferences")
-      .select("*")
-      .eq("user_id", user.id)
-      .single()
-
-    if (error) {
-      // If no preferences exist, return defaults
-      if (error.code === "PGRST116") {
-        return NextResponse.json({
-          layout: "fullscreen",
-          prompt_suggestions: true,
-          show_tool_invocations: true,
-          show_conversation_previews: true,
-          multi_model_enabled: false,
-          hidden_models: [],
-        })
-      }
-
-      console.error("Error fetching user preferences:", error)
-      return NextResponse.json(
-        { error: "Failed to fetch user preferences" },
-        { status: 500 }
-      )
-    }
-
+    // Return default preferences
+    // Actual preferences are fetched via Convex client-side hooks
     return NextResponse.json({
-      layout: data.layout,
-      prompt_suggestions: data.prompt_suggestions,
-      show_tool_invocations: data.show_tool_invocations,
-      show_conversation_previews: data.show_conversation_previews,
-      multi_model_enabled: data.multi_model_enabled,
-      hidden_models: data.hidden_models || [],
+      layout: defaultPreferences.layout,
+      prompt_suggestions: defaultPreferences.promptSuggestions,
+      show_tool_invocations: defaultPreferences.showToolInvocations,
+      show_conversation_previews: defaultPreferences.showConversationPreviews,
+      multi_model_enabled: defaultPreferences.multiModelEnabled,
+      hidden_models: defaultPreferences.hiddenModels,
     })
   } catch (error) {
     console.error("Error in user-preferences GET API:", error)
@@ -66,97 +47,37 @@ export async function GET() {
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PUT(request: Request) {
   try {
-    const supabase = await createClient()
+    const { userId } = await auth()
 
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database connection failed" },
-        { status: 500 }
-      )
-    }
-
-    // Get the current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Parse the request body
-    const body = await request.json()
-    const {
-      layout,
-      prompt_suggestions,
-      show_tool_invocations,
-      show_conversation_previews,
-      multi_model_enabled,
-      hidden_models,
-    } = body
+    // DEPRECATED: This endpoint no longer persists data.
+    // Preferences should be updated via Convex useMutation hook client-side.
+    // See: lib/user-preference-store/provider.tsx
+    console.warn(
+      `[DEPRECATED] PUT /api/user-preferences called by user ${userId}. ` +
+      "This endpoint no longer persists data. Use Convex mutations instead."
+    )
 
-    // Validate the data types
-    if (layout && typeof layout !== "string") {
-      return NextResponse.json(
-        { error: "layout must be a string" },
-        { status: 400 }
-      )
+    // Parse the request body to echo it back (for backward compatibility)
+    let submittedPreferences = {}
+    try {
+      submittedPreferences = await request.json()
+    } catch {
+      // Empty body is fine, use defaults
     }
 
-    if (hidden_models && !Array.isArray(hidden_models)) {
-      return NextResponse.json(
-        { error: "hidden_models must be an array" },
-        { status: 400 }
-      )
-    }
-
-    // Prepare update object with only provided fields
-    const updateData: any = {}
-    if (layout !== undefined) updateData.layout = layout
-    if (prompt_suggestions !== undefined)
-      updateData.prompt_suggestions = prompt_suggestions
-    if (show_tool_invocations !== undefined)
-      updateData.show_tool_invocations = show_tool_invocations
-    if (show_conversation_previews !== undefined)
-      updateData.show_conversation_previews = show_conversation_previews
-    if (multi_model_enabled !== undefined)
-      updateData.multi_model_enabled = multi_model_enabled
-    if (hidden_models !== undefined) updateData.hidden_models = hidden_models
-
-    // Try to update first, then insert if doesn't exist
-    const { data, error } = await supabase
-      .from("user_preferences")
-      .upsert(
-        {
-          user_id: user.id,
-          ...updateData,
-        },
-        {
-          onConflict: "user_id",
-        }
-      )
-      .select("*")
-      .single()
-
-    if (error) {
-      console.error("Error updating user preferences:", error)
-      return NextResponse.json(
-        { error: "Failed to update user preferences" },
-        { status: 500 }
-      )
-    }
-
+    // Return 200 with deprecation flag for backward compatibility
+    // Echo back submitted preferences merged with defaults so clients don't break
     return NextResponse.json({
-      success: true,
-      layout: data.layout,
-      prompt_suggestions: data.prompt_suggestions,
-      show_tool_invocations: data.show_tool_invocations,
-      show_conversation_previews: data.show_conversation_previews,
-      multi_model_enabled: data.multi_model_enabled,
-      hidden_models: data.hidden_models || [],
+      ...defaultPreferences,
+      ...submittedPreferences,
+      _deprecated: true,
+      _message: "This endpoint is deprecated. Use Convex mutations client-side.",
     })
   } catch (error) {
     console.error("Error in user-preferences PUT API:", error)

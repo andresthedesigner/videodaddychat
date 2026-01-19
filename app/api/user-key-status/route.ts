@@ -1,39 +1,32 @@
+import { auth } from "@clerk/nextjs/server"
 import { PROVIDERS } from "@/lib/providers"
-import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
 const SUPPORTED_PROVIDERS = PROVIDERS.map((p) => p.id)
 
+/**
+ * @deprecated This endpoint is deprecated. Use Convex userKeys.getAll query instead.
+ *
+ * Previously returned status of which providers the user has API keys for.
+ * Now returns all false since the client (ModelProvider) uses Convex directly
+ * for reactive user key status via useQuery(api.userKeys.getAll).
+ *
+ * This endpoint is kept only for backward compatibility with any external
+ * consumers that may still be calling it.
+ */
 export async function GET() {
   try {
-    const supabase = await createClient()
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Supabase not available" },
-        { status: 500 }
-      )
-    }
+    const { userId } = await auth()
 
-    const { data: authData } = await supabase.auth.getUser()
-
-    if (!authData?.user?.id) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { data, error } = await supabase
-      .from("user_keys")
-      .select("provider")
-      .eq("user_id", authData.user.id)
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    // Create status object for all supported providers
-    const userProviders = data?.map((k: { provider: string }) => k.provider) || []
+    // DEPRECATED: Client now uses Convex userKeys.getAll for reactive updates
+    // Return all providers as false for backward compatibility
     const providerStatus = SUPPORTED_PROVIDERS.reduce(
       (acc, provider) => {
-        acc[provider] = userProviders.includes(provider)
+        acc[provider] = false
         return acc
       },
       {} as Record<string, boolean>

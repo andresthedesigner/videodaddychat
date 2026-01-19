@@ -38,6 +38,7 @@ export const Image = ({
     if (uint8Array && mediaType) {
       const blob = new Blob([uint8Array as BlobPart], { type: mediaType })
       const url = URL.createObjectURL(blob)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- cleanup required for URL.revokeObjectURL
       setObjectUrl(url)
       return () => {
         URL.revokeObjectURL(url)
@@ -65,6 +66,7 @@ export const Image = ({
   }
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element -- Renders dynamic base64/blob URLs, next/image doesn't support these
     <img
       src={src}
       alt={alt}

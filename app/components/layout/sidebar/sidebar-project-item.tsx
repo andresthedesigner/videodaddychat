@@ -1,21 +1,21 @@
 "use client"
 
+import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { useBreakpoint } from "@/app/hooks/use-breakpoint"
 import useClickOutside from "@/app/hooks/use-click-outside"
-import { fetchClient } from "@/lib/fetch"
+import { toast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 import { Check, FolderIcon, X } from "@phosphor-icons/react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation } from "convex/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useCallback, useMemo, useRef, useState } from "react"
 import { SidebarProjectMenu } from "./sidebar-project-menu"
 
 type Project = {
-  id: string
+  _id: Id<"projects">
   name: string
-  user_id: string
-  created_at: string
 }
 
 type SidebarProjectItemProps = {
@@ -26,88 +26,18 @@ export function SidebarProjectItem({ project }: SidebarProjectItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(project.name || "")
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [prevProjectName, setPrevProjectName] = useState(project.name)
   const inputRef = useRef<HTMLInputElement>(null)
-  const lastProjectNameRef = useRef(project.name)
   const isMobile = useBreakpoint(768)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pathname = usePathname()
-  const queryClient = useQueryClient()
+  const updateProjectName = useMutation(api.projects.updateName)
 
-  if (!isEditing && lastProjectNameRef.current !== project.name) {
-    lastProjectNameRef.current = project.name
+  // React 19 pattern: sync during render instead of useEffect
+  if (!isEditing && project.name !== prevProjectName) {
+    setPrevProjectName(project.name)
     setEditName(project.name || "")
   }
-
-  const updateProjectMutation = useMutation({
-    mutationFn: async ({
-      projectId,
-      name,
-    }: {
-      projectId: string
-      name: string
-    }) => {
-      const response = await fetchClient(`/api/projects/${projectId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to update project")
-      }
-
-      return response.json()
-    },
-    onMutate: async ({ projectId, name }) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["projects"] })
-      await queryClient.cancelQueries({ queryKey: ["project", projectId] })
-
-      // Snapshot the previous values
-      const previousProjects = queryClient.getQueryData(["projects"])
-      const previousProject = queryClient.getQueryData(["project", projectId])
-
-      // Optimistically update projects list
-      queryClient.setQueryData(["projects"], (old: Project[] | undefined) => {
-        if (!old) return old
-        return old.map((p: Project) =>
-          p.id === projectId ? { ...p, name } : p
-        )
-      })
-
-      // Optimistically update individual project
-      queryClient.setQueryData(
-        ["project", projectId],
-        (old: Project | undefined) => {
-          if (!old) return old
-          return { ...old, name }
-        }
-      )
-
-      // Return a context object with the snapshotted values
-      return { previousProjects, previousProject, projectId }
-    },
-    onError: (err, variables, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousProjects) {
-        queryClient.setQueryData(["projects"], context.previousProjects)
-      }
-      if (context?.previousProject) {
-        queryClient.setQueryData(
-          ["project", context.projectId],
-          context.previousProject
-        )
-      }
-    },
-    onSettled: () => {
-      // Always refetch after error or success to ensure we have the latest data
-      queryClient.invalidateQueries({ queryKey: ["projects"] })
-      queryClient.invalidateQueries({ queryKey: ["project", project.id] })
-    },
-  })
 
   const handleStartEditing = useCallback(() => {
     setIsEditing(true)
@@ -123,14 +53,20 @@ export function SidebarProjectItem({ project }: SidebarProjectItemProps) {
 
   const handleSave = useCallback(async () => {
     if (editName.trim() !== project.name) {
-      updateProjectMutation.mutate({
-        projectId: project.id,
-        name: editName.trim(),
-      })
+      try {
+        await updateProjectName({
+          projectId: project._id,
+          name: editName.trim(),
+        })
+      } catch (error) {
+        toast({ title: "Failed to rename project", status: "error" })
+        console.error("Failed to rename project:", error)
+        // Still close edit state to avoid stuck UI
+      }
     }
     setIsEditing(false)
     setIsMenuOpen(false)
-  }, [project.id, project.name, editName, updateProjectMutation])
+  }, [project._id, project.name, editName, updateProjectName])
 
   const handleCancel = useCallback(() => {
     setEditName(project.name || "")
@@ -201,8 +137,8 @@ export function SidebarProjectItem({ project }: SidebarProjectItemProps) {
 
   // Memoize computed values
   const isActive = useMemo(
-    () => pathname.startsWith(`/p/${project.id}`) || isEditing || isMenuOpen,
-    [pathname, project.id, isEditing, isMenuOpen]
+    () => pathname.startsWith(`/p/${project._id}`) || isEditing || isMenuOpen,
+    [pathname, project._id, isEditing, isMenuOpen]
   )
 
   const displayName = useMemo(
@@ -265,7 +201,7 @@ export function SidebarProjectItem({ project }: SidebarProjectItemProps) {
       ) : (
         <>
           <Link
-            href={`/p/${project.id}`}
+            href={`/p/${project._id}`}
             className="block w-full"
             prefetch
             onClick={handleLinkClick}
@@ -279,7 +215,7 @@ export function SidebarProjectItem({ project }: SidebarProjectItemProps) {
             </div>
           </Link>
 
-          <div className={menuClassName} key={project.id}>
+          <div className={menuClassName} key={project._id}>
             <SidebarProjectMenu
               project={project}
               onStartEditing={handleStartEditing}

@@ -109,6 +109,12 @@ function useTextStream({
     return Math.max(1, Math.round(100 / Math.sqrt(normalizedSpeed)))
   }, [])
 
+  const onErrorRef = useRef(onError)
+  
+  useEffect(() => {
+    onErrorRef.current = onError
+  }, [onError])
+
   const updateSegments = useCallback((text: string) => {
     if (modeRef.current === "fade") {
       try {
@@ -132,7 +138,7 @@ function useTextStream({
             index,
           }))
         setSegments(newSegments)
-        onError?.(error)
+        onErrorRef.current?.(error)
       }
     }
   }, [])

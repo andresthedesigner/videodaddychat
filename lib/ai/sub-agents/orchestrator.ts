@@ -322,6 +322,7 @@ class Orchestrator {
    */
   private async delegateToSubAgent(
     agentType: SubAgentType,
+     
     _input: SubAgentTaskInput
   ): Promise<SubAgentResponse> {
     const agentConfig = this.config.subAgents.get(agentType)

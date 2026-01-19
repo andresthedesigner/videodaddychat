@@ -1,17 +1,18 @@
 "use client"
 
 import { toast } from "@/components/ui/toast"
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
+import { useMutation, useQuery } from "convex/react"
+import { createContext, useCallback, useContext, useMemo, useState } from "react"
 import { MODEL_DEFAULT, SYSTEM_PROMPT_DEFAULT } from "../../config"
 import type { Chats } from "../types"
-import {
-  createNewChat as createNewChatFromDb,
-  deleteChat as deleteChatFromDb,
-  fetchAndCacheChats,
-  getCachedChats,
-  updateChatModel as updateChatModelFromDb,
-  updateChatTitle,
-} from "./api"
+
+// Types for optimistic updates
+type OptimisticAdd = { type: "add"; chat: Chats }
+type OptimisticUpdate = { type: "update"; id: string; changes: Partial<Chats> }
+type OptimisticDelete = { type: "delete"; id: string }
+type OptimisticOperation = OptimisticAdd | OptimisticUpdate | OptimisticDelete
 
 interface ChatsContextType {
   chats: Chats[]
@@ -48,183 +49,230 @@ export function useChats() {
 }
 
 export function ChatsProvider({
-  userId,
   children,
 }: {
   userId?: string
   children: React.ReactNode
 }) {
-  const [isLoading, setIsLoading] = useState(true)
-  const [chats, setChats] = useState<Chats[]>([])
+  // Convex real-time query for chats
+  const convexChats = useQuery(api.chats.getForCurrentUser, {})
 
-  useEffect(() => {
-    if (!userId) return
+  // Convex mutations
+  const createChatMutation = useMutation(api.chats.create)
+  const updateTitleMutation = useMutation(api.chats.updateTitle)
+  const updateModelMutation = useMutation(api.chats.updateModel)
+  const togglePinMutation = useMutation(api.chats.togglePin)
+  const deleteChatMutation = useMutation(api.chats.remove)
 
-    const load = async () => {
-      setIsLoading(true)
-      const cached = await getCachedChats()
-      setChats(cached)
+  // Convert Convex chats to unified format
+  const serverChats: Chats[] = useMemo(() => {
+    if (!convexChats) return []
+    return convexChats.map(
+      (chat): Chats => ({
+        id: chat._id,
+        user_id: chat.userId,
+        title: chat.title ?? null,
+        model: chat.model ?? null,
+        system_prompt: chat.systemPrompt ?? null,
+        project_id: chat.projectId ?? null,
+        public: chat.public,
+        pinned: chat.pinned,
+        pinned_at: chat.pinnedAt ? new Date(chat.pinnedAt).toISOString() : null,
+        created_at: new Date(chat._creationTime).toISOString(),
+        updated_at: chat.updatedAt
+          ? new Date(chat.updatedAt).toISOString()
+          : null,
+      })
+    )
+  }, [convexChats])
 
-      try {
-        const fresh = await fetchAndCacheChats(userId)
-        setChats(fresh)
-      } finally {
-        setIsLoading(false)
+  const isLoading = convexChats === undefined
+
+  // Track optimistic operations (adds, updates, deletes)
+  const [optimisticOps, setOptimisticOps] = useState<OptimisticOperation[]>([])
+
+  // Derive displayed chats from server data + optimistic operations
+  const chats = useMemo(() => {
+    let result = [...serverChats]
+
+    for (const op of optimisticOps) {
+      if (op.type === "add") {
+        // Only add if not already in server data (by checking optimistic prefix)
+        if (op.chat.id.startsWith("optimistic-") || !result.find((c) => c.id === op.chat.id)) {
+          result = [op.chat, ...result.filter((c) => c.id !== op.chat.id)]
+        }
+      } else if (op.type === "update") {
+        result = result.map((c) =>
+          c.id === op.id ? { ...c, ...op.changes } : c
+        )
+      } else if (op.type === "delete") {
+        result = result.filter((c) => c.id !== op.id)
       }
     }
 
-    load()
-  }, [userId])
+    // Sort by updated_at
+    return result.sort(
+      (a, b) => +new Date(b.updated_at || b.created_at || "") - +new Date(a.updated_at || a.created_at || "")
+    )
+  }, [serverChats, optimisticOps])
+
+  // Helper to remove an optimistic operation
+  const removeOp = useCallback((predicate: (op: OptimisticOperation) => boolean) => {
+    setOptimisticOps((prev) => prev.filter((op) => !predicate(op)))
+  }, [])
 
   const refresh = async () => {
-    if (!userId) return
-
-    const fresh = await fetchAndCacheChats(userId)
-    setChats(fresh)
+    // With Convex, data is real-time, so refresh is a no-op
+    // The useQuery hook automatically updates when data changes
   }
 
-  const updateTitle = async (id: string, title: string) => {
-    let previousState: Chats[] | null = null
-    setChats((prev) => {
-      previousState = prev
-      const updatedChatWithNewTitle = prev.map((c) =>
-        c.id === id ? { ...c, title, updated_at: new Date().toISOString() } : c
-      )
-      return updatedChatWithNewTitle.sort(
-        (a, b) => +new Date(b.updated_at || "") - +new Date(a.updated_at || "")
-      )
-    })
+  const updateTitle = useCallback(async (id: string, title: string) => {
+    const changes = { title, updated_at: new Date().toISOString() }
+
+    // Optimistic update
+    setOptimisticOps((prev) => [...prev, { type: "update", id, changes }])
+
     try {
-      await updateChatTitle(id, title)
+      await updateTitleMutation({ chatId: id as Id<"chats">, title })
+      // Remove optimistic op after success (server data will have the update)
+      removeOp((op) => op.type === "update" && op.id === id && op.changes.title === title)
     } catch {
-      if (previousState) setChats(previousState)
+      // Revert optimistic update
+      removeOp((op) => op.type === "update" && op.id === id && op.changes.title === title)
       toast({ title: "Failed to update title", status: "error" })
     }
-  }
+  }, [updateTitleMutation, removeOp])
 
-  const deleteChat = async (
+  const deleteChat = useCallback(async (
     id: string,
     currentChatId?: string,
     redirect?: () => void
   ) => {
-    const prev = [...chats]
-    setChats((prev) => prev.filter((c) => c.id !== id))
+    // Optimistic delete
+    setOptimisticOps((prev) => [...prev, { type: "delete", id }])
 
     try {
-      await deleteChatFromDb(id)
+      await deleteChatMutation({ chatId: id as Id<"chats"> })
       if (id === currentChatId && redirect) redirect()
+      // Keep the delete op until server confirms (real-time will remove the chat)
     } catch {
-      setChats(prev)
+      // Revert optimistic delete
+      removeOp((op) => op.type === "delete" && op.id === id)
       toast({ title: "Failed to delete chat", status: "error" })
     }
-  }
+  }, [deleteChatMutation, removeOp])
 
-  const createNewChat = async (
+  const createNewChat = useCallback(async (
     userId: string,
     title?: string,
     model?: string,
-    isAuthenticated?: boolean,
+    _isAuthenticated?: boolean,
     systemPrompt?: string,
     projectId?: string
-  ) => {
+  ): Promise<Chats | undefined> => {
     if (!userId) return
-    const prev = [...chats]
 
     const optimisticId = `optimistic-${Date.now().toString()}`
-    const optimisticChat = {
+    const optimisticChat: Chats = {
       id: optimisticId,
       title: title || "New Chat",
       created_at: new Date().toISOString(),
       model: model || MODEL_DEFAULT,
       system_prompt: systemPrompt || SYSTEM_PROMPT_DEFAULT,
       user_id: userId,
-      public: true,
+      public: false,
       updated_at: new Date().toISOString(),
       project_id: null,
       pinned: false,
       pinned_at: null,
     }
-    setChats((prev) => [optimisticChat, ...prev])
+
+    // Optimistic add
+    setOptimisticOps((prev) => [...prev, { type: "add", chat: optimisticChat }])
 
     try {
-      const newChat = await createNewChatFromDb(
-        userId,
-        title,
-        model,
-        isAuthenticated,
-        projectId
-      )
+      const chatId = await createChatMutation({
+        title: title || "New Chat",
+        model: model || MODEL_DEFAULT,
+        systemPrompt: systemPrompt || SYSTEM_PROMPT_DEFAULT,
+        projectId: projectId as Id<"projects"> | undefined,
+      })
 
-      setChats((prev) => [
-        newChat,
-        ...prev.filter((c) => c.id !== optimisticId),
-      ])
+      const newChat: Chats = {
+        ...optimisticChat,
+        id: chatId,
+      }
+
+      // Replace optimistic with real chat
+      setOptimisticOps((prev) => {
+        const filtered = prev.filter(
+          (op) => !(op.type === "add" && op.chat.id === optimisticId)
+        )
+        return [...filtered, { type: "add", chat: newChat }]
+      })
+
+      // Clean up after server sync
+      setTimeout(() => {
+        removeOp((op) => op.type === "add" && op.chat.id === chatId)
+      }, 1000)
 
       return newChat
     } catch {
-      setChats(prev)
+      // Revert optimistic add
+      removeOp((op) => op.type === "add" && op.chat.id === optimisticId)
       toast({ title: "Failed to create chat", status: "error" })
+      return undefined
     }
-  }
+  }, [createChatMutation, removeOp])
 
-  const resetChats = async () => {
-    setChats([])
-  }
+  const resetChats = useCallback(async () => {
+    setOptimisticOps([])
+  }, [])
 
-  const getChatById = (id: string) => {
-    const chat = chats.find((c) => c.id === id)
-    return chat
-  }
+  const getChatById = useCallback((id: string) => {
+    return chats.find((c) => c.id === id)
+  }, [chats])
 
-  const updateChatModel = async (id: string, model: string) => {
-    const prev = [...chats]
-    setChats((prev) => prev.map((c) => (c.id === id ? { ...c, model } : c)))
+  const updateChatModel = useCallback(async (id: string, model: string) => {
+    const changes = { model }
+
+    // Optimistic update
+    setOptimisticOps((prev) => [...prev, { type: "update", id, changes }])
+
     try {
-      await updateChatModelFromDb(id, model)
+      await updateModelMutation({ chatId: id as Id<"chats">, model })
+      removeOp((op) => op.type === "update" && op.id === id && op.changes.model === model)
     } catch {
-      setChats(prev)
+      removeOp((op) => op.type === "update" && op.id === id && op.changes.model === model)
       toast({ title: "Failed to update model", status: "error" })
     }
-  }
+  }, [updateModelMutation, removeOp])
 
-  const bumpChat = async (id: string) => {
-    setChats((prev) => {
-      const updatedChatWithNewUpdatedAt = prev.map((c) =>
-        c.id === id ? { ...c, updated_at: new Date().toISOString() } : c
-      )
-      return updatedChatWithNewUpdatedAt.sort(
-        (a, b) => +new Date(b.updated_at || "") - +new Date(a.updated_at || "")
-      )
-    })
-  }
+  const bumpChat = useCallback(async (id: string) => {
+    const changes = { updated_at: new Date().toISOString() }
+    setOptimisticOps((prev) => [...prev, { type: "update", id, changes }])
+    // This is a local-only operation for UI ordering, no server call needed
+    // Clean up after a short delay
+    setTimeout(() => {
+      removeOp((op) => op.type === "update" && op.id === id && op.changes.updated_at === changes.updated_at)
+    }, 100)
+  }, [removeOp])
 
-  const togglePinned = async (id: string, pinned: boolean) => {
-    const prevChats = [...chats]
+  const togglePinned = useCallback(async (id: string, pinned: boolean) => {
     const now = new Date().toISOString()
+    const changes = { pinned, pinned_at: pinned ? now : null }
 
-    const updatedChats = prevChats.map((chat) =>
-      chat.id === id
-        ? { ...chat, pinned, pinned_at: pinned ? now : null }
-        : chat
-    )
-    // Sort to maintain proper order of chats
-    const sortedChats = updatedChats.sort((a, b) => {
-      const aTime = new Date(a.updated_at || a.created_at || 0).getTime()
-      const bTime = new Date(b.updated_at || b.created_at || 0).getTime()
-      return bTime - aTime
-    })
-    setChats(sortedChats)
+    // Optimistic update
+    setOptimisticOps((prev) => [...prev, { type: "update", id, changes }])
+
     try {
-      const { toggleChatPin } = await import("./api")
-      await toggleChatPin(id, pinned)
+      await togglePinMutation({ chatId: id as Id<"chats">, pinned })
+      removeOp((op) => op.type === "update" && op.id === id && op.changes.pinned === pinned)
     } catch {
-      setChats(prevChats)
-      toast({
-        title: "Failed to update pin",
-        status: "error",
-      })
+      removeOp((op) => op.type === "update" && op.id === id && op.changes.pinned === pinned)
+      toast({ title: "Failed to update pin", status: "error" })
     }
-  }
+  }, [togglePinMutation, removeOp])
 
   const pinnedChats = useMemo(
     () =>
@@ -238,6 +286,18 @@ export function ChatsProvider({
         }),
     [chats]
   )
+
+  // setChats is kept for backward compatibility but now manages optimistic ops
+  const setChats = useCallback((action: React.SetStateAction<Chats[]>) => {
+    // For direct sets, clear optimistic ops and let server be source of truth
+    if (typeof action === "function") {
+      // Can't easily support functional updates with optimistic ops
+      // Just clear ops and let Convex handle it
+      setOptimisticOps([])
+    } else {
+      setOptimisticOps([])
+    }
+  }, [])
 
   return (
     <ChatsContext.Provider

@@ -1,5 +1,13 @@
-import { createGuestServerClient } from "@/lib/supabase/server-guest"
-
+/**
+ * Create Guest User API
+ * 
+ * Note: With Clerk + Convex, guest users are handled differently.
+ * Clerk provides authentication, and anonymous users should use
+ * Clerk's anonymous authentication or the app should work without auth.
+ * 
+ * This endpoint is kept for backward compatibility but returns a mock
+ * guest user. For actual guest functionality, use Clerk's features.
+ */
 export async function POST(request: Request) {
   try {
     const { userId } = await request.json()
@@ -10,53 +18,37 @@ export async function POST(request: Request) {
       })
     }
 
-    const supabase = await createGuestServerClient()
-    if (!supabase) {
-      console.log("Supabase not enabled, skipping guest creation.")
-      return new Response(
-        JSON.stringify({ user: { id: userId, anonymous: true } }),
-        {
-          status: 200,
-        }
-      )
+    // Input validation: ensure userId is a string with safe characters
+    if (typeof userId !== "string") {
+      return new Response(JSON.stringify({ error: "Invalid userId" }), {
+        status: 400,
+      })
     }
 
-    // Check if the user record already exists.
-    let { data: userData } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle()
+    const trimmedUserId = userId.trim()
+    const userIdPattern = /^[a-zA-Z0-9_\-:@.]{1,128}$/
 
-    if (!userData) {
-      const { data, error } = await supabase
-        .from("users")
-        .insert({
-          id: userId,
-          email: `${userId}@anonymous.example`,
+    if (!trimmedUserId || !userIdPattern.test(trimmedUserId)) {
+      return new Response(JSON.stringify({ error: "Invalid userId format" }), {
+        status: 400,
+      })
+    }
+
+    // With Clerk + Convex, guest users are managed differently
+    // Return a mock user for backward compatibility
+    console.log("Guest user creation handled via local storage or Clerk")
+    
+    return new Response(
+      JSON.stringify({ 
+        user: { 
+          id: trimmedUserId, 
           anonymous: true,
           message_count: 0,
-          premium: false,
-          created_at: new Date().toISOString(),
-        })
-        .select("*")
-        .single()
-
-      if (error || !data) {
-        console.error("Error creating guest user:", error)
-        return new Response(
-          JSON.stringify({
-            error: "Failed to create guest user",
-            details: error?.message,
-          }),
-          { status: 500 }
-        )
-      }
-
-      userData = data
-    }
-
-    return new Response(JSON.stringify({ user: userData }), { status: 200 })
+          daily_message_count: 0,
+        } 
+      }),
+      { status: 200 }
+    )
   } catch (err: unknown) {
     console.error("Error in create-guest endpoint:", err)
 

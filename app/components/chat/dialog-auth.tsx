@@ -9,10 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { signInWithGoogle } from "@/lib/api"
-import { createClient } from "@/lib/supabase/client"
-import { isSupabaseEnabled } from "@/lib/supabase/config"
-import Image from "next/image"
+import { useSignIn } from "@clerk/nextjs"
 import { useState } from "react"
 
 type DialogAuthProps = {
@@ -21,37 +18,28 @@ type DialogAuthProps = {
 }
 
 export function DialogAuth({ open, setOpen }: DialogAuthProps) {
+  const { signIn, isLoaded } = useSignIn()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (!isSupabaseEnabled) {
-    return null
-  }
-
-  const supabase = createClient()
-
-  if (!supabase) {
-    return null
-  }
-
   const handleSignInWithGoogle = async () => {
+    if (!isLoaded || !signIn) return
+
     try {
       setIsLoading(true)
       setError(null)
 
-      const data = await signInWithGoogle(supabase)
-
-      // Redirect to the provider URL
-      if (data?.url) {
-        window.location.href = data.url
-      }
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/auth/callback",
+        redirectUrlComplete: "/",
+      })
     } catch (err: unknown) {
       console.error("Error signing in with Google:", err)
       setError(
         (err as Error).message ||
           "An unexpected error occurred. Please try again."
       )
-    } finally {
       setIsLoading(false)
     }
   }
@@ -78,8 +66,9 @@ export function DialogAuth({ open, setOpen }: DialogAuthProps) {
             className="w-full text-base"
             size="lg"
             onClick={handleSignInWithGoogle}
-            disabled={isLoading}
+            disabled={isLoading || !isLoaded}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element -- External favicon, optimization not needed */}
             <img
               src="https://www.google.com/favicon.ico"
               alt="Google logo"

@@ -4,19 +4,20 @@ import {
   checkFileUploadLimit,
   processFiles,
 } from "@/lib/file-handling"
+import { useConvex } from "convex/react"
 import { useCallback, useState } from "react"
 
 export const useFileUpload = () => {
   const [files, setFiles] = useState<File[]>([])
+  const convex = useConvex()
 
   const handleFileUploads = async (
-    uid: string,
     chatId: string
   ): Promise<Attachment[] | null> => {
     if (files.length === 0) return []
 
     try {
-      await checkFileUploadLimit(uid)
+      await checkFileUploadLimit(convex)
     } catch (err: unknown) {
       const error = err as { code?: string; message?: string }
       if (error.code === "DAILY_FILE_LIMIT_REACHED") {
@@ -26,7 +27,7 @@ export const useFileUpload = () => {
     }
 
     try {
-      const processed = await processFiles(files, chatId, uid)
+      const processed = await processFiles(files, chatId, convex)
       setFiles([])
       return processed
     } catch {

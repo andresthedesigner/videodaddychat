@@ -8,6 +8,7 @@ import {
   createContext,
   useContext,
   isValidElement,
+  cloneElement,
 } from 'react';
 import {
   AnimatePresence,
@@ -123,22 +124,24 @@ function MorphingPopoverTrigger({
     );
   }
 
+  // Wrap child in motion.div instead of creating dynamic motion component
   if (asChild && isValidElement(children)) {
-    const MotionComponent = motion.create(
-      children.type as React.ForwardRefExoticComponent<any>
-    );
     const childProps = children.props as Record<string, unknown>;
 
     return (
-      <MotionComponent
-        {...childProps}
-        onClick={context.open}
+      <motion.div
         layoutId={`popover-trigger-${context.uniqueId}`}
-        className={childProps.className}
         key={context.uniqueId}
+        onClick={context.open}
         aria-expanded={context.isOpen}
         aria-controls={`popover-content-${context.uniqueId}`}
-      />
+        className="inline-block"
+      >
+        {cloneElement(children, {
+          ...childProps,
+          className: childProps.className,
+        } as React.HTMLAttributes<HTMLElement>)}
+      </motion.div>
     );
   }
 
@@ -190,6 +193,7 @@ function MorphingPopoverContent({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only need to track isOpen and close function, not entire context object
   }, [context.isOpen, context.close]);
 
   return (

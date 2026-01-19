@@ -9,11 +9,11 @@ import {
 } from "idb-keyval"
 
 let dbInitPromise: Promise<void> | null = null
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const stores: Record<string, any> = {}
 
 const isClient = typeof window !== "undefined"
-const DB_NAME = "videodaddy-db"
+const DB_NAME = "vid0-db"
 const DB_VERSION = 2
 
 let storesReady = false

@@ -1,5 +1,103 @@
-import type { Tables } from "@/app/types/database.types"
+import type { Doc, Id } from "@/convex/_generated/dataModel"
 
-export type Chat = Tables<"chats">
-export type Message = Tables<"messages">
-export type Chats = Tables<"chats">
+// ============================================================================
+// Convex Types
+// ============================================================================
+
+export type ConvexChat = Doc<"chats">
+export type ConvexMessage = Doc<"messages">
+
+// ============================================================================
+// Unified Types (used throughout the app)
+// These types provide a consistent interface for the rest of the application
+// ============================================================================
+
+/**
+ * Unified Chat type used throughout the application
+ * Uses snake_case for compatibility with existing code
+ */
+export interface Chat {
+  id: string
+  user_id: string
+  title: string | null
+  model: string | null
+  system_prompt?: string | null
+  project_id: string | null
+  public: boolean
+  pinned: boolean
+  pinned_at: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
+/**
+ * Unified Message type used throughout the application
+ */
+export interface Message {
+  id: string | number
+  chat_id: string
+  user_id?: string | null
+  role: "user" | "assistant" | "system" | "data"
+  content: string | null
+  parts?: unknown
+  experimental_attachments?: unknown[]
+  message_group_id?: string | null
+  model?: string | null
+  created_at?: string | null
+}
+
+// Alias for backward compatibility
+export type Chats = Chat
+
+// ============================================================================
+// Conversion Helpers
+// ============================================================================
+
+/**
+ * Convert Convex chat to unified Chat type
+ */
+export function convexChatToChat(convexChat: ConvexChat): Chat {
+  return {
+    id: convexChat._id,
+    user_id: convexChat.userId,
+    title: convexChat.title ?? null,
+    model: convexChat.model ?? null,
+    system_prompt: convexChat.systemPrompt ?? null,
+    project_id: convexChat.projectId ?? null,
+    public: convexChat.public,
+    pinned: convexChat.pinned,
+    pinned_at: convexChat.pinnedAt
+      ? new Date(convexChat.pinnedAt).toISOString()
+      : null,
+    created_at: new Date(convexChat._creationTime).toISOString(),
+    updated_at: convexChat.updatedAt
+      ? new Date(convexChat.updatedAt).toISOString()
+      : null,
+  }
+}
+
+/**
+ * Convert Convex message to unified Message type
+ */
+export function convexMessageToMessage(convexMessage: ConvexMessage): Message {
+  return {
+    id: convexMessage._id,
+    chat_id: convexMessage.chatId,
+    user_id: convexMessage.userId ?? null,
+    role: convexMessage.role,
+    content: convexMessage.content ?? null,
+    parts: convexMessage.parts,
+    experimental_attachments: convexMessage.attachments,
+    message_group_id: convexMessage.messageGroupId ?? null,
+    model: convexMessage.model ?? null,
+    created_at: new Date(convexMessage._creationTime).toISOString(),
+  }
+}
+
+/**
+ * Type guard to check if a chat ID is a Convex ID
+ */
+export function isConvexId(id: string): id is Id<"chats"> {
+  // Convex IDs are typically longer strings with specific format
+  return id.length > 20 && !id.includes("-")
+}

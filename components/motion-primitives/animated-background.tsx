@@ -29,8 +29,17 @@ export function AnimatedBackground({
   transition,
   enableHover = false,
 }: AnimatedBackgroundProps) {
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(defaultValue ?? null);
+  const [prevDefaultValue, setPrevDefaultValue] = useState(defaultValue);
   const uniqueId = useId();
+
+  // React 19 pattern: sync during render instead of useEffect
+  if (defaultValue !== prevDefaultValue) {
+    setPrevDefaultValue(defaultValue);
+    if (defaultValue !== undefined) {
+      setActiveId(defaultValue);
+    }
+  }
 
   const handleSetActiveId = (id: string | null) => {
     setActiveId(id);
@@ -40,14 +49,10 @@ export function AnimatedBackground({
     }
   };
 
-  useEffect(() => {
-    if (defaultValue !== undefined) {
-      setActiveId(defaultValue);
-    }
-  }, [defaultValue]);
-
-  return Children.map(children, (child: any, index) => {
-    const id = child.props['data-id'];
+  return Children.map(children, (child, index) => {
+    // Cast to access strongly typed props
+    const childElement = child as ReactElement<{ 'data-id': string; className?: string; children?: React.ReactNode }>;
+    const id = childElement.props['data-id'];
 
     const interactionProps = enableHover
       ? {
@@ -58,11 +63,12 @@ export function AnimatedBackground({
           onClick: () => handleSetActiveId(id),
         };
 
+    // Use type assertion for cloneElement to allow additional props
     return cloneElement(
-      child,
+      childElement as ReactElement<Record<string, unknown>>,
       {
         key: index,
-        className: cn('relative inline-flex', child.props.className),
+        className: cn('relative inline-flex', childElement.props.className),
         'data-checked': activeId === id ? 'true' : 'false',
         ...interactionProps,
       },
@@ -83,7 +89,7 @@ export function AnimatedBackground({
             />
           )}
         </AnimatePresence>
-        <div className='z-10'>{child.props.children}</div>
+        <div className='z-10'>{childElement.props.children}</div>
       </>
     );
   });
