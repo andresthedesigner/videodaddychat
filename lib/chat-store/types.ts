@@ -1,12 +1,4 @@
-import type { Tables } from "@/app/types/database.types"
 import type { Doc, Id } from "@/convex/_generated/dataModel"
-
-// ============================================================================
-// Supabase Types (Legacy)
-// ============================================================================
-
-export type SupabaseChat = Tables<"chats">
-export type SupabaseMessage = Tables<"messages">
 
 // ============================================================================
 // Convex Types
@@ -17,11 +9,11 @@ export type ConvexMessage = Doc<"messages">
 
 // ============================================================================
 // Unified Types (used throughout the app)
-// These types work with both Supabase and Convex data
+// These types provide a consistent interface for the rest of the application
 // ============================================================================
 
 /**
- * Unified Chat type that works with both Supabase and Convex
+ * Unified Chat type used throughout the application
  * Uses snake_case for compatibility with existing code
  */
 export interface Chat {
@@ -39,7 +31,7 @@ export interface Chat {
 }
 
 /**
- * Unified Message type that works with both Supabase and Convex
+ * Unified Message type used throughout the application
  */
 export interface Message {
   id: string | number

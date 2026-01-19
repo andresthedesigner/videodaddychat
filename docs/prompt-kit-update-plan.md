@@ -1,6 +1,26 @@
 # Prompt-Kit Component Update Plan
 
-> **For AI Agent Execution** — This document provides complete context for updating and adding prompt-kit components in the vid0 project.
+> **For AI Agent Execution** — Optimized workflow for updating and adding prompt-kit components using the single-directory approach (`components/ui/`).
+
+---
+
+## Architecture Decision
+
+**Approach**: Single Directory (`components/ui/`)
+
+All shadcn and prompt-kit components live in `components/ui/`. This eliminates manual file moving and simplifies imports.
+
+```
+components/
+├── ui/                 # ALL UI components (shadcn + prompt-kit)
+└── motion-primitives/  # Animation primitives (separate concern)
+```
+
+**Benefits**:
+- Zero friction installation (`npx shadcn add` just works)
+- Consistent import path (`@/components/ui/`)
+- Matches shadcn conventions
+- No post-install file moving
 
 ---
 
@@ -12,321 +32,439 @@
 - **Style**: new-york (per components.json)
 - **Package Manager**: bun
 
-### Directory Structure
-```
-components/
-├── ui/               # Shadcn UI primitives (default install location)
-├── prompt-kit/       # Custom prompt-kit location (ACTIVE - used in imports)
-└── motion-primitives/
-```
+### Current Configuration
 
-### Critical Path Information
-- **Import path used in codebase**: `@/components/prompt-kit/`
-- **Default shadcn install path**: `@/components/ui/`
-- **Action required**: After installing, move files from `ui/` to `prompt-kit/`
+```json
+// components.json
+{
+  "aliases": {
+    "ui": "@/components/ui"
+  }
+}
+```
 
 ---
 
-## Current State
+## Current State Assessment
 
-### Installed Components (9)
-Located in `components/prompt-kit/`:
+### Prompt-Kit Components in `components/prompt-kit/` (9) — TO MIGRATE
 
-| Component | File | Status |
-|-----------|------|--------|
-| Chat Container | `chat-container.tsx` | ✅ Installed |
-| Code Block | `code-block.tsx` | ✅ Installed |
-| File Upload | `file-upload.tsx` | ✅ Installed |
-| Loader | `loader.tsx` | ✅ Installed |
-| Markdown | `markdown.tsx` | ✅ Installed |
-| Message | `message.tsx` | ✅ Installed |
-| Prompt Input | `prompt-input.tsx` | ✅ Installed |
-| Prompt Suggestion | `prompt-suggestion.tsx` | ✅ Installed |
-| Scroll Button | `scroll-button.tsx` | ✅ Installed |
+| Component | Customizations | Migration |
+|-----------|----------------|-----------|
+| `chat-container.tsx` | Check | Move to ui/ |
+| `code-block.tsx` | **Yes** — `useTheme()`, SSR fallback | Move to ui/ |
+| `file-upload.tsx` | Check | Move to ui/ |
+| `loader.tsx` | **Yes** — Custom 3-dot animation | Move to ui/ |
+| `markdown.tsx` | Check | Move to ui/ |
+| `message.tsx` | **Yes** — Dynamic import | Move to ui/ |
+| `prompt-input.tsx` | Check | Move to ui/ |
+| `prompt-suggestion.tsx` | Likely vanilla | Move to ui/ |
+| `scroll-button.tsx` | Likely vanilla | Move to ui/ |
 
-### Missing Components (12)
+### Already in `components/ui/` (3) — NO ACTION
 
-| Component | JSON URL | Priority | Notes |
-|-----------|----------|----------|-------|
-| Reasoning | `reasoning.json` | ⭐ High | AI thinking display |
-| Thinking Bar | `thinking-bar.json` | ⭐ High | Processing indicator (new) |
-| Tool | `tool.json` | ⭐ High | Function call outputs |
-| Source | `source.json` | ⭐ High | Citation display |
-| Chain of Thought | `chain-of-thought.json` | ⭐ High | Step-by-step reasoning |
-| Feedback Bar | `feedback-bar.json` | Medium | User feedback (new) |
-| Steps | `steps.json` | Medium | Multi-step progress |
-| Text Shimmer | `text-shimmer.json` | Medium | Loading effect (new) |
-| System Message | `system-message.json` | Medium | Context messages |
-| Image | `image.json` | Medium | Image display |
-| Response Stream | `response-stream.json` | Low | Experimental |
-| JSX Preview | `jsx-preview.json` | Low | Experimental |
+| Component | Status |
+|-----------|--------|
+| `thinking-bar.tsx` | ✅ Already in place |
+| `text-shimmer.tsx` | ✅ Already in place |
+| `loader.tsx` | ✅ Advanced 12+ variant version |
+
+### Custom Implementation (1) — KEEP SEPARATE
+
+| Component | Location | Reason |
+|-----------|----------|--------|
+| `reasoning.tsx` | `app/components/chat/` | App-specific streaming behavior |
+
+### Missing Components (7) — TO INSTALL
+
+| Component | Priority | Notes |
+|-----------|----------|-------|
+| `tool.json` | ⭐ High | Function call outputs |
+| `source.json` | ⭐ High | Citation display |
+| `chain-of-thought.json` | ⭐ High | Step-by-step reasoning |
+| `feedback-bar.json` | Medium | User feedback |
+| `steps.json` | Medium | Multi-step progress |
+| `system-message.json` | Medium | Context messages |
+| `image.json` | Medium | Image display |
+
+**SKIP** (already installed or custom exists):
+- ~~reasoning.json~~ → Custom at `app/components/chat/reasoning.tsx`
+- ~~thinking-bar.json~~ → Already at `components/ui/thinking-bar.tsx`
+- ~~text-shimmer.json~~ → Already at `components/ui/text-shimmer.tsx`
 
 ---
 
 ## Execution Plan
 
-### Phase 1: Backup (REQUIRED)
+### Phase 1: Pre-Flight Checks
+
+**1.1 Verify Current State**
 
 ```bash
-# Create timestamped backup
-cp -r components/prompt-kit components/prompt-kit.backup.$(date +%Y%m%d)
-
-# Verify backup exists
-ls -la components/ | grep prompt-kit
-```
-
-**Success criteria**: Backup directory exists with all 9 component files.
-
----
-
-### Phase 2: Install Missing Components
-
-#### Step 2.1: Install High Priority Components
-
-```bash
-npx shadcn@latest add "https://prompt-kit.com/c/reasoning.json"
-npx shadcn@latest add "https://prompt-kit.com/c/thinking-bar.json"
-npx shadcn@latest add "https://prompt-kit.com/c/tool.json"
-npx shadcn@latest add "https://prompt-kit.com/c/source.json"
-npx shadcn@latest add "https://prompt-kit.com/c/chain-of-thought.json"
-```
-
-#### Step 2.2: Install Medium Priority Components
-
-```bash
-npx shadcn@latest add "https://prompt-kit.com/c/feedback-bar.json"
-npx shadcn@latest add "https://prompt-kit.com/c/steps.json"
-npx shadcn@latest add "https://prompt-kit.com/c/text-shimmer.json"
-npx shadcn@latest add "https://prompt-kit.com/c/system-message.json"
-npx shadcn@latest add "https://prompt-kit.com/c/image.json"
-```
-
-#### Step 2.3: Install Experimental Components (Optional)
-
-```bash
-npx shadcn@latest add "https://prompt-kit.com/c/response-stream.json"
-npx shadcn@latest add "https://prompt-kit.com/c/jsx-preview.json"
-```
-
-**Note**: Components will install to `components/ui/` by default.
-
----
-
-### Phase 3: Relocate Components
-
-After installation, move new components to the correct directory:
-
-```bash
-# List newly installed prompt-kit components in ui/
-ls components/ui/ | grep -E "(reasoning|thinking-bar|tool|source|chain-of-thought|feedback-bar|steps|text-shimmer|system-message|image|response-stream|jsx-preview)"
-
-# Move each new component to prompt-kit/
-# Example for each component:
-mv components/ui/reasoning.tsx components/prompt-kit/
-mv components/ui/thinking-bar.tsx components/prompt-kit/
-mv components/ui/tool.tsx components/prompt-kit/
-mv components/ui/source.tsx components/prompt-kit/
-mv components/ui/chain-of-thought.tsx components/prompt-kit/
-mv components/ui/feedback-bar.tsx components/prompt-kit/
-mv components/ui/steps.tsx components/prompt-kit/
-mv components/ui/text-shimmer.tsx components/prompt-kit/
-mv components/ui/system-message.tsx components/prompt-kit/
-mv components/ui/image.tsx components/prompt-kit/
-```
-
----
-
-### Phase 4: Fix Import Paths
-
-After moving, update internal imports in each moved file.
-
-**Pattern to find and replace**:
-- Find: `from "@/components/ui/`
-- Replace with: `from "@/components/prompt-kit/`
-
-**Files to check** (only for cross-references to other prompt-kit components):
-
-```bash
-# Search for ui imports in prompt-kit directory
-grep -r "@/components/ui" components/prompt-kit/
-```
-
-**Common fixes needed**:
-- `reasoning.tsx` may import from `markdown.tsx`
-- `chain-of-thought.tsx` may import from `reasoning.tsx`
-- Components may import shared utilities
-
----
-
-### Phase 5: Update Existing Components (Optional)
-
-To check if existing components need updates:
-
-```bash
-# Compare each installed component with latest
-npx shadcn@latest diff "https://prompt-kit.com/c/prompt-input.json"
-npx shadcn@latest diff "https://prompt-kit.com/c/message.json"
-npx shadcn@latest diff "https://prompt-kit.com/c/markdown.json"
-npx shadcn@latest diff "https://prompt-kit.com/c/code-block.json"
-npx shadcn@latest diff "https://prompt-kit.com/c/chat-container.json"
-npx shadcn@latest diff "https://prompt-kit.com/c/loader.json"
-npx shadcn@latest diff "https://prompt-kit.com/c/file-upload.json"
-npx shadcn@latest diff "https://prompt-kit.com/c/prompt-suggestion.json"
-npx shadcn@latest diff "https://prompt-kit.com/c/scroll-button.json"
-```
-
-**If updates needed**:
-```bash
-# Update with overwrite (CAUTION: loses customizations)
-npx shadcn@latest add "https://prompt-kit.com/c/[component].json" --overwrite
-
-# Then move to prompt-kit/ and fix imports
-```
-
----
-
-### Phase 6: Verification
-
-#### 6.1 Check File Structure
-
-```bash
-# Verify all components exist in prompt-kit/
+echo "=== Prompt-kit components to migrate ==="
 ls -la components/prompt-kit/
 
-# Expected output should include:
-# - chat-container.tsx
-# - code-block.tsx
-# - file-upload.tsx
-# - loader.tsx
-# - markdown.tsx
-# - message.tsx
-# - prompt-input.tsx
-# - prompt-suggestion.tsx
-# - scroll-button.tsx
-# + reasoning.tsx (new)
-# + thinking-bar.tsx (new)
-# + tool.tsx (new)
-# + source.tsx (new)
-# + chain-of-thought.tsx (new)
-# + feedback-bar.tsx (new)
-# + steps.tsx (new)
-# + text-shimmer.tsx (new)
-# + system-message.tsx (new)
-# + image.tsx (new)
+echo "=== Existing ui components ==="
+ls components/ui/ | wc -l
+echo "files in components/ui/"
+
+echo "=== Check for naming conflicts ==="
+for f in components/prompt-kit/*.tsx; do
+  name=$(basename "$f")
+  if [ -f "components/ui/$name" ]; then
+    echo "CONFLICT: $name exists in both directories"
+  fi
+done
 ```
 
-#### 6.2 TypeScript Check
+**Expected**: Only `loader.tsx` should show as conflict (we'll handle this).
+
+**1.2 Install Dependencies**
+
+```bash
+bun add shiki react-markdown remark-gfm remark-breaks use-stick-to-bottom
+```
+
+**Success Criteria**: All dependencies installed without errors.
+
+---
+
+### Phase 2: Backup
+
+```bash
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+
+# Backup both directories
+cp -r components/prompt-kit "components/prompt-kit.backup.$TIMESTAMP"
+cp -r components/ui "components/ui.backup.$TIMESTAMP"
+
+# Verify
+echo "=== Backups created ==="
+ls -d components/*.backup.* 2>/dev/null || echo "ERROR: Backups not found"
+```
+
+**Success Criteria**: Two backup directories exist with timestamps.
+
+---
+
+### Phase 3: Migrate Existing Components
+
+**3.1 Handle Loader Conflict**
+
+Two different `loader.tsx` files exist:
+- `components/prompt-kit/loader.tsx` — Simple 3-dot animation
+- `components/ui/loader.tsx` — Advanced 12+ variants
+
+**Decision**: Keep both, rename prompt-kit version.
+
+```bash
+# Rename prompt-kit loader to avoid conflict
+mv components/prompt-kit/loader.tsx components/prompt-kit/loader-dots.tsx
+```
+
+**3.2 Move All Components**
+
+```bash
+# Move all prompt-kit components to ui/
+for f in components/prompt-kit/*.tsx; do
+  name=$(basename "$f")
+  if [ -f "components/ui/$name" ]; then
+    echo "SKIP: $name already exists in ui/"
+  else
+    mv "$f" components/ui/
+    echo "MOVED: $name"
+  fi
+done
+
+# Verify prompt-kit is empty (except backup)
+ls components/prompt-kit/
+```
+
+**3.3 Update Imports Across Codebase**
+
+```bash
+# Find all files with old import path
+echo "=== Files to update ==="
+grep -rl "@/components/prompt-kit" app/ lib/ components/ --include="*.tsx" --include="*.ts"
+
+# Perform replacement
+find app lib components -type f \( -name "*.tsx" -o -name "*.ts" \) -exec sed -i '' 's|@/components/prompt-kit/|@/components/ui/|g' {} +
+
+# Handle renamed loader-dots
+find app lib components -type f \( -name "*.tsx" -o -name "*.ts" \) -exec sed -i '' 's|@/components/ui/loader"|@/components/ui/loader-dots"|g' {} +
+
+# Verify no old imports remain
+echo "=== Remaining old imports (should be empty) ==="
+grep -r "@/components/prompt-kit" app/ lib/ components/ --include="*.tsx" --include="*.ts" || echo "None found - good!"
+```
+
+**3.4 Remove Empty Directory**
+
+```bash
+# Only remove if empty
+if [ -z "$(ls -A components/prompt-kit 2>/dev/null)" ]; then
+  rmdir components/prompt-kit
+  echo "Removed empty prompt-kit directory"
+else
+  echo "WARNING: prompt-kit not empty, manual cleanup needed"
+  ls components/prompt-kit/
+fi
+```
+
+**3.5 Verify Migration**
 
 ```bash
 bun run typecheck
 ```
 
-**Expected**: No new TypeScript errors related to prompt-kit components.
+**Success Criteria**: No TypeScript errors related to imports.
 
-#### 6.3 Lint Check
+---
+
+### Phase 4: Install Missing Components
+
+**4.1 Install High Priority**
+
+```bash
+npx shadcn@latest add "https://prompt-kit.com/c/tool.json"
+npx shadcn@latest add "https://prompt-kit.com/c/source.json"
+npx shadcn@latest add "https://prompt-kit.com/c/chain-of-thought.json"
+```
+
+**4.2 Install Medium Priority**
+
+```bash
+npx shadcn@latest add "https://prompt-kit.com/c/feedback-bar.json"
+npx shadcn@latest add "https://prompt-kit.com/c/steps.json"
+npx shadcn@latest add "https://prompt-kit.com/c/system-message.json"
+npx shadcn@latest add "https://prompt-kit.com/c/image.json"
+```
+
+**4.3 Verify Installation**
+
+```bash
+echo "=== New components installed ==="
+ls -la components/ui/ | grep -E "(tool|source|chain-of-thought|feedback-bar|steps|system-message|image)"
+```
+
+**Success Criteria**: All 7 new files exist in `components/ui/`.
+
+---
+
+### Phase 5: Update Existing Components
+
+**5.1 Check for Upstream Changes**
+
+```bash
+for component in prompt-input message markdown code-block chat-container file-upload prompt-suggestion scroll-button; do
+  echo "=== $component ==="
+  npx shadcn@latest diff "https://prompt-kit.com/c/${component}.json" 2>/dev/null | head -20 || echo "No changes or not found"
+  echo ""
+done
+```
+
+**5.2 Update Strategy**
+
+| Component | Strategy | Action |
+|-----------|----------|--------|
+| `scroll-button.tsx` | Safe overwrite | `npx shadcn@latest add ... --overwrite` |
+| `prompt-suggestion.tsx` | Safe overwrite | `npx shadcn@latest add ... --overwrite` |
+| `file-upload.tsx` | Check diff | Update if no local changes |
+| `chat-container.tsx` | Check diff | Update if no local changes |
+| `prompt-input.tsx` | Check diff | Update if no local changes |
+| `markdown.tsx` | Check diff | Update if no local changes |
+| `code-block.tsx` | **Manual merge** | Preserve `useTheme()`, SSR fallback |
+| `message.tsx` | **Manual merge** | Preserve dynamic import |
+| `loader-dots.tsx` | **Keep local** | Custom implementation |
+
+**5.3 Safe Overwrites**
+
+```bash
+# Components with no known customizations
+npx shadcn@latest add "https://prompt-kit.com/c/scroll-button.json" --overwrite
+npx shadcn@latest add "https://prompt-kit.com/c/prompt-suggestion.json" --overwrite
+```
+
+**5.4 Manual Merge Workflow**
+
+For `code-block.tsx` and `message.tsx`:
+
+```bash
+# Download latest to temp for comparison
+mkdir -p /tmp/prompt-kit-latest
+
+npx shadcn@latest add "https://prompt-kit.com/c/code-block.json" --path /tmp/prompt-kit-latest --overwrite
+diff components/ui/code-block.tsx /tmp/prompt-kit-latest/code-block.tsx
+
+npx shadcn@latest add "https://prompt-kit.com/c/message.json" --path /tmp/prompt-kit-latest --overwrite
+diff components/ui/message.tsx /tmp/prompt-kit-latest/message.tsx
+
+# Review diffs and manually merge, preserving:
+# - code-block.tsx: useTheme(), SSR fallback
+# - message.tsx: dynamic import
+
+rm -rf /tmp/prompt-kit-latest
+```
+
+---
+
+### Phase 6: Final Verification
+
+**6.1 File Structure Check**
+
+```bash
+echo "=== All prompt-kit components in ui/ ==="
+ls components/ui/ | grep -E "(chat-container|code-block|file-upload|loader|markdown|message|prompt-input|prompt-suggestion|scroll-button|tool|source|chain-of-thought|feedback-bar|steps|system-message|image|thinking-bar|text-shimmer)"
+```
+
+**Expected**: 17+ component files listed.
+
+**6.2 No Orphaned Imports**
+
+```bash
+# Check no imports point to old location
+grep -r "@/components/prompt-kit" . --include="*.tsx" --include="*.ts" | grep -v backup | grep -v node_modules || echo "✓ No orphaned imports"
+```
+
+**6.3 TypeScript Check**
+
+```bash
+bun run typecheck
+```
+
+**6.4 Lint Check**
 
 ```bash
 bun run lint
 ```
 
-**Expected**: No new lint errors.
-
-#### 6.4 Build Test
+**6.5 Build Test**
 
 ```bash
 bun run build
 ```
 
-**Expected**: Successful build with no errors.
+**Success Criteria**: All three commands pass with no errors.
 
 ---
 
 ## Rollback Procedure
 
-If issues occur:
+### Quick Rollback (Full)
 
 ```bash
-# Remove new components
-rm components/prompt-kit/reasoning.tsx
-rm components/prompt-kit/thinking-bar.tsx
-rm components/prompt-kit/tool.tsx
-rm components/prompt-kit/source.tsx
-rm components/prompt-kit/chain-of-thought.tsx
-rm components/prompt-kit/feedback-bar.tsx
-rm components/prompt-kit/steps.tsx
-rm components/prompt-kit/text-shimmer.tsx
-rm components/prompt-kit/system-message.tsx
-rm components/prompt-kit/image.tsx
+# Find latest backup timestamp
+BACKUP=$(ls -d components/prompt-kit.backup.* 2>/dev/null | tail -1 | sed 's/.*backup\.//')
 
-# Or restore from backup
-rm -rf components/prompt-kit
-cp -r components/prompt-kit.backup.YYYYMMDD components/prompt-kit
+# Restore
+rm -rf components/prompt-kit components/ui
+cp -r "components/prompt-kit.backup.$BACKUP" components/prompt-kit
+cp -r "components/ui.backup.$BACKUP" components/ui
+
+# Revert import changes
+git checkout -- app/ lib/ components/
 ```
 
----
-
-## Component Dependencies
-
-Some components have external dependencies. Install if missing:
+### Partial Rollback (Remove New Components Only)
 
 ```bash
-# Check package.json for these, install if needed:
-bun add shiki                    # For code-block syntax highlighting
-bun add react-markdown           # For markdown rendering
-bun add remark-gfm remark-breaks # For markdown plugins
-bun add marked                   # For markdown parsing
-bun add use-stick-to-bottom      # For chat-container auto-scroll
-bun add react-jsx-parser         # For jsx-preview (if installing)
+rm components/ui/tool.tsx
+rm components/ui/source.tsx
+rm components/ui/chain-of-thought.tsx
+rm components/ui/feedback-bar.tsx
+rm components/ui/steps.tsx
+rm components/ui/system-message.tsx
+rm components/ui/image.tsx
 ```
 
 ---
 
 ## Import Reference
 
-After installation, components should be imported as:
+After migration, all imports use `@/components/ui/`:
 
 ```typescript
 // Chat components
-import { Message, MessageContent, MessageAvatar } from "@/components/prompt-kit/message"
-import { ChatContainerRoot, ChatContainerContent } from "@/components/prompt-kit/chat-container"
-import { Loader } from "@/components/prompt-kit/loader"
-import { ScrollButton } from "@/components/prompt-kit/scroll-button"
+import { Message, MessageContent, MessageAvatar } from "@/components/ui/message"
+import { ChatContainerRoot, ChatContainerContent } from "@/components/ui/chat-container"
+import { ScrollButton } from "@/components/ui/scroll-button"
+
+// Loaders (two options)
+import { Loader } from "@/components/ui/loader"           // 12+ variants
+import { Loader as DotsLoader } from "@/components/ui/loader-dots"  // Simple 3-dot
 
 // Input components
-import { PromptInput, PromptInputTextarea, PromptInputActions } from "@/components/prompt-kit/prompt-input"
-import { PromptSuggestion } from "@/components/prompt-kit/prompt-suggestion"
-import { FileUpload, FileUploadTrigger } from "@/components/prompt-kit/file-upload"
+import { PromptInput, PromptInputTextarea } from "@/components/ui/prompt-input"
+import { PromptSuggestion } from "@/components/ui/prompt-suggestion"
+import { FileUpload } from "@/components/ui/file-upload"
 
 // Content rendering
-import { Markdown } from "@/components/prompt-kit/markdown"
-import { CodeBlock, CodeBlockCode } from "@/components/prompt-kit/code-block"
+import { Markdown } from "@/components/ui/markdown"
+import { CodeBlock, CodeBlockCode } from "@/components/ui/code-block"
 
-// AI-specific (NEW)
-import { Reasoning, ReasoningTrigger, ReasoningContent } from "@/components/prompt-kit/reasoning"
-import { ThinkingBar } from "@/components/prompt-kit/thinking-bar"
-import { Tool } from "@/components/prompt-kit/tool"
-import { Source, SourceTrigger, SourceContent } from "@/components/prompt-kit/source"
-import { ChainOfThought } from "@/components/prompt-kit/chain-of-thought"
+// AI-specific
+import { Tool } from "@/components/ui/tool"
+import { Source } from "@/components/ui/source"
+import { ChainOfThought } from "@/components/ui/chain-of-thought"
+import { ThinkingBar } from "@/components/ui/thinking-bar"
+import { TextShimmer } from "@/components/ui/text-shimmer"
 
-// UI feedback (NEW)
-import { FeedbackBar } from "@/components/prompt-kit/feedback-bar"
-import { Steps } from "@/components/prompt-kit/steps"
-import { TextShimmer } from "@/components/prompt-kit/text-shimmer"
-import { SystemMessage } from "@/components/prompt-kit/system-message"
-import { Image } from "@/components/prompt-kit/image"
+// UI feedback
+import { FeedbackBar } from "@/components/ui/feedback-bar"
+import { Steps } from "@/components/ui/steps"
+import { SystemMessage } from "@/components/ui/system-message"
+import { Image } from "@/components/ui/image"
+
+// Custom (stays in app/)
+import { Reasoning } from "@/app/components/chat/reasoning"
 ```
 
 ---
 
-## Success Criteria
+## Success Checklist
 
-- [ ] All 10 high/medium priority components installed
-- [ ] All components located in `components/prompt-kit/`
-- [ ] All imports use `@/components/prompt-kit/` path
+### Phase 1: Pre-Flight
+- [ ] No unexpected naming conflicts (only loader.tsx expected)
+- [ ] Dependencies installed
+
+### Phase 2: Backup
+- [ ] `components/prompt-kit.backup.*` exists
+- [ ] `components/ui.backup.*` exists
+
+### Phase 3: Migration
+- [ ] `loader.tsx` renamed to `loader-dots.tsx`
+- [ ] All 9 components moved to `components/ui/`
+- [ ] All imports updated to `@/components/ui/`
+- [ ] `components/prompt-kit/` directory removed
+- [ ] `bun run typecheck` passes
+
+### Phase 4: Install
+- [ ] 7 new components installed in `components/ui/`
+
+### Phase 5: Update
+- [ ] Vanilla components updated
+- [ ] Customized components manually merged
+
+### Phase 6: Verification
+- [ ] No orphaned imports
 - [ ] `bun run typecheck` passes
 - [ ] `bun run lint` passes
-- [ ] `bun run build` succeeds
-- [ ] Backup preserved for rollback
+- [ ] `bun run build` passes
+
+---
+
+## Future Workflow
+
+After migration, installing new prompt-kit components is simple:
+
+```bash
+# Install directly to components/ui/ (no manual moving)
+npx shadcn@latest add "https://prompt-kit.com/c/[component].json"
+
+# Update existing component
+npx shadcn@latest diff "https://prompt-kit.com/c/[component].json"
+npx shadcn@latest add "https://prompt-kit.com/c/[component].json" --overwrite
+```
 
 ---
 
@@ -334,10 +472,9 @@ import { Image } from "@/components/prompt-kit/image"
 
 - [Prompt-Kit Documentation](https://prompt-kit.com/docs)
 - [Prompt-Kit GitHub](https://github.com/ibelick/prompt-kit)
-- [Vercel AI SDK Integration](https://prompt-kit.com/vercel-ai-sdk)
-- [Component API Reference](https://prompt-kit.com/llms-full.txt)
+- [Shadcn CLI Reference](https://ui.shadcn.com/docs/cli)
 
 ---
 
-*Generated: January 19, 2026*
-*Source: prompt-kit.com documentation*
+*Version: 3.0 — Single-directory architecture (Option B)*
+*Updated: January 18, 2026*

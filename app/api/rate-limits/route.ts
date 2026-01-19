@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
     if (!usage) {
       return new Response(
-        JSON.stringify({ error: "Supabase not available in this deployment." }),
+        JSON.stringify({ error: "Usage data not available." }),
         { status: 200 }
       )
     }

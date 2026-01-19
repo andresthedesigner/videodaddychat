@@ -1,3 +1,14 @@
+/**
+ * Database type definitions
+ *
+ * LEGACY FILE: These types were originally generated for Supabase but are
+ * kept for backward compatibility with existing code. The application now
+ * uses Convex for data storage. See convex/schema.ts for the actual schema.
+ *
+ * Some components still reference these types for their shape definitions.
+ * Consider migrating to Convex types when touching these files.
+ */
+
 import { Attachment } from "@ai-sdk/ui-utils"
 
 export type Json =
