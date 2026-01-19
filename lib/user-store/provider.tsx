@@ -37,14 +37,6 @@ export function UserProvider({
   const [isLoading, setIsLoading] = useState(false)
   const updateProfileMutation = useMutation(api.users.updateProfile)
 
-  // Refresh user data
-  // Note: With Convex, prefer using real-time queries instead
-  const refreshUser = useCallback(async () => {
-    // With Convex integration, user data is typically fetched via Convex queries
-    // This function is kept for API compatibility but doesn't fetch externally
-    // Consuming components should use Convex useQuery for real-time updates
-  }, [])
-
   // Update user profile and persist to Convex
   const updateUser = useCallback(async (updates: Partial<UserProfile>) => {
     if (!user?.id) return
@@ -73,7 +65,7 @@ export function UserProvider({
   }, [user?.id, updateProfileMutation])
 
   return (
-    <UserContext.Provider value={{ user, isLoading, updateUser, refreshUser }}>
+    <UserContext.Provider value={{ user, isLoading, updateUser }}>
       {children}
     </UserContext.Provider>
   )
