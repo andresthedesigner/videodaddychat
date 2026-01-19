@@ -119,3 +119,44 @@ export const updateFavoriteModels = mutation({
     return favoriteModels
   },
 })
+
+/**
+ * Update user profile fields
+ * Supports updating: systemPrompt, displayName
+ */
+export const updateProfile = mutation({
+  args: {
+    systemPrompt: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) {
+      throw new Error("Not authenticated")
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique()
+
+    if (!user) {
+      throw new Error("User not found")
+    }
+
+    // Build update object with only provided fields
+    const updates: Record<string, string | undefined> = {}
+    if (args.systemPrompt !== undefined) {
+      updates.systemPrompt = args.systemPrompt
+    }
+    if (args.displayName !== undefined) {
+      updates.displayName = args.displayName
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await ctx.db.patch(user._id, updates)
+    }
+
+    return { success: true }
+  },
+})

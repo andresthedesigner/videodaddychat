@@ -467,8 +467,11 @@ docker build -t vid0 .
 docker run -p 3000:3000 \
   -e NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key \
   -e CLERK_SECRET_KEY=your_clerk_secret_key \
+  -e CLERK_JWT_ISSUER_DOMAIN=your_clerk_jwt_issuer_domain \
   -e CONVEX_DEPLOYMENT=your_convex_deployment \
   -e NEXT_PUBLIC_CONVEX_URL=your_convex_url \
+  -e CSRF_SECRET=your_csrf_secret \
+  -e ENCRYPTION_KEY=your_encryption_key \
   -e ANTHROPIC_API_KEY=your_anthropic_api_key \
   -e OPENAI_API_KEY=your_openai_api_key \
   vid0

@@ -13,13 +13,15 @@
 
 import type { UserProfile } from "@/lib/user/types"
 import { createContext, useContext, useState, useCallback } from "react"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 type UserContextType = {
   user: UserProfile | null
   isLoading: boolean
   updateUser: (updates: Partial<UserProfile>) => Promise<void>
-  refreshUser: () => Promise<void>
   // Note: For sign out, use useClerk().signOut() from @clerk/nextjs
+  // Note: refreshUser was removed - use Convex real-time queries or ModelProvider.favoriteModels instead
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -33,6 +35,7 @@ export function UserProvider({
 }) {
   const [user, setUser] = useState<UserProfile | null>(initialUser)
   const [isLoading, setIsLoading] = useState(false)
+  const updateProfileMutation = useMutation(api.users.updateProfile)
 
   // Refresh user data
   // Note: With Convex, prefer using real-time queries instead
@@ -42,20 +45,32 @@ export function UserProvider({
     // Consuming components should use Convex useQuery for real-time updates
   }, [])
 
-  // Update user profile
-  // Note: With Convex, prefer using mutations directly
+  // Update user profile and persist to Convex
   const updateUser = useCallback(async (updates: Partial<UserProfile>) => {
     if (!user?.id) return
 
     setIsLoading(true)
     try {
-      // Optimistically update local state
-      // Actual persistence should be handled via Convex mutations in consuming components
+      // Map UserProfile fields to Convex schema fields
+      const convexUpdates: { systemPrompt?: string; displayName?: string } = {}
+      if (updates.system_prompt !== undefined) {
+        convexUpdates.systemPrompt = updates.system_prompt ?? undefined
+      }
+      if (updates.display_name !== undefined) {
+        convexUpdates.displayName = updates.display_name
+      }
+
+      // Persist to Convex if there are supported fields to update
+      if (Object.keys(convexUpdates).length > 0) {
+        await updateProfileMutation(convexUpdates)
+      }
+
+      // Update local state optimistically
       setUser((prev) => (prev ? { ...prev, ...updates } : null))
     } finally {
       setIsLoading(false)
     }
-  }, [user?.id])
+  }, [user?.id, updateProfileMutation])
 
   return (
     <UserContext.Provider value={{ user, isLoading, updateUser, refreshUser }}>

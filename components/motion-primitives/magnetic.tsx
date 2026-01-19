@@ -64,6 +64,17 @@ export function Magnetic({
     };
   }, [ref, isHovered, intensity, range, x, y]);
 
+  // Sync isHovered when actionArea changes to/from 'global'
+  useEffect(() => {
+    if (actionArea === 'global') {
+      setIsHovered(true);
+    } else if (actionArea === 'self') {
+      // Reset to false for 'self' mode (will be controlled by mouse events)
+      setIsHovered(false);
+    }
+    // 'parent' mode will be handled by the parent event listeners below
+  }, [actionArea]);
+
   useEffect(() => {
     if (actionArea === 'parent' && ref.current?.parentElement) {
       const parent = ref.current.parentElement;
@@ -79,7 +90,6 @@ export function Magnetic({
         parent.removeEventListener('mouseleave', handleParentLeave);
       };
     }
-    // For 'global' actionArea, isHovered is initialized as true in useState
   }, [actionArea]);
 
   const handleMouseEnter = () => {

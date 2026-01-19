@@ -20,12 +20,12 @@ export function QuoteButton({
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
   useClickOutside(buttonRef as RefObject<HTMLElement>, onDismiss)
 
-  // Measure container rect in useLayoutEffect instead of during render
+  // Measure container rect once on mount - it doesn't depend on mouse position
   useLayoutEffect(() => {
     if (messageContainerRef.current) {
       setContainerRect(messageContainerRef.current.getBoundingClientRect())
     }
-  }, [messageContainerRef, mousePosition])
+  }, [messageContainerRef])
 
   const buttonHeight = 60
   const position = containerRect

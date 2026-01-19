@@ -133,13 +133,13 @@ function MorphingPopoverTrigger({
         layoutId={`popover-trigger-${context.uniqueId}`}
         key={context.uniqueId}
         onClick={context.open}
-        aria-expanded={context.isOpen}
-        aria-controls={`popover-content-${context.uniqueId}`}
         className="inline-block"
       >
         {cloneElement(children, {
           ...childProps,
           className: childProps.className,
+          "aria-expanded": context.isOpen,
+          "aria-controls": `popover-content-${context.uniqueId}`,
         } as React.HTMLAttributes<HTMLElement>)}
       </motion.div>
     )
