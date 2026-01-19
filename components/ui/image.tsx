@@ -38,6 +38,7 @@ export const Image = ({
     if (uint8Array && mediaType) {
       const blob = new Blob([uint8Array as BlobPart], { type: mediaType })
       const url = URL.createObjectURL(blob)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- cleanup required for URL.revokeObjectURL
       setObjectUrl(url)
       return () => {
         URL.revokeObjectURL(url)

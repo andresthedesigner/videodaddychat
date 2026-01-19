@@ -8,42 +8,38 @@ Based on [Zola](https://github.com/ibelick/zola), the open-source AI chat interf
 
 - [Bun](https://bun.sh) 1.0 or later (recommended) or Node.js 18.x or later
 - Git
-- Supabase account (for auth and storage)
-- API keys for supported AI models (OpenAI, Mistral, etc.) OR Ollama for local models
+- Clerk account (for authentication)
+- Convex account (for database)
+- API keys for supported AI models (OpenAI, Anthropic, etc.) OR Ollama for local models
 
 ## Environment Setup
 
 First, you'll need to set up your environment variables. Create a `.env.local` file in the root of the project with the variables from `.env.example`
 
 ```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE=your_supabase_service_role_key
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+CLERK_JWT_ISSUER_DOMAIN=your_clerk_jwt_issuer_domain
 
-# OpenAI
+# Convex Database
+CONVEX_DEPLOYMENT=your_convex_deployment
+NEXT_PUBLIC_CONVEX_URL=your_convex_url
+
+# Security
+CSRF_SECRET=your_csrf_secret_key
+ENCRYPTION_KEY=your_encryption_key
+
+# AI Providers (at least one required)
+ANTHROPIC_API_KEY=your_anthropic_api_key
 OPENAI_API_KEY=your_openai_api_key
 
-# Mistral
+# Optional AI Providers
 MISTRAL_API_KEY=your_mistral_api_key
-
-# OpenRouter
 OPENROUTER_API_KEY=your_openrouter_api_key
-
-# CSRF Protection
-CSRF_SECRET=your_csrf_secret_key
-
-# Exa
-EXA_API_KEY=your_exa_api_key
-
-# Gemini
 GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_api_key
-
-# Anthropic
-ANTHROPIC_API_KEY=your_anthropic_api_key
-
-# Xai
 XAI_API_KEY=your_xai_api_key
+EXA_API_KEY=your_exa_api_key
 
 # Ollama (for local AI models)
 OLLAMA_BASE_URL=http://localhost:11434
@@ -112,189 +108,65 @@ ENCRYPTION_KEY=your_generated_base64_encryption_key
 
 With BYOK enabled, users can securely add their own API keys through the settings interface, giving them access to AI models using their personal accounts and usage limits.
 
-#### Google OAuth Authentication
+#### Clerk Authentication Setup
 
-1. Go to your Supabase project dashboard
-2. Navigate to Authentication > Providers
-3. Find the "Google" provider
-4. Enable it by toggling the switch
-5. Configure the Google OAuth credentials:
-   - You'll need to set up OAuth 2.0 credentials in the Google Cloud Console
-   - Add your application's redirect URL: https://[YOUR_PROJECT_REF].supabase.co/auth/v1/callback
-   - Get the Client ID and Client Secret from Google Cloud Console
-   - Add these credentials to the Google provider settings in Supabase
+vid0 uses Clerk for authentication. Follow these steps:
 
-Here are the detailed steps to set up Google OAuth:
+1. Create a Clerk account at [clerk.com](https://clerk.com)
+2. Create a new application
+3. Configure your sign-in options (Email, Google, GitHub, etc.)
+4. Get your API keys from the Clerk dashboard:
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+   - `CLERK_SECRET_KEY`
+5. Configure the JWT issuer domain for Convex integration
 
-1. Go to the Google Cloud Console
-2. Create a new project or select an existing one
-3. Enable the Google+ API
-4. Go to Credentials > Create Credentials > OAuth Client ID
-5. Configure the OAuth consent screen if you haven't already
-6. Set the application type as "Web application"
-7. Add these authorized redirect URIs:
+#### Google OAuth via Clerk
 
-- https://[YOUR_PROJECT_REF].supabase.co/auth/v1/callback
-- http://localhost:3000/auth/callback (for local development)
+1. In your Clerk dashboard, go to User & Authentication > Social Connections
+2. Enable Google
+3. Configure OAuth in Google Cloud Console:
+   - Create OAuth 2.0 credentials
+   - Add Clerk's redirect URI from your Clerk dashboard
+4. Add your Google Client ID and Secret to Clerk
 
-8. Copy the Client ID and Client Secret
-9. Go back to your Supabase dashboard
-10. Paste the Client ID and Client Secret in the Google provider settings
-11. Save the changes
+#### Guest Access
 
-#### Guest user setup
+Anonymous/guest access is handled through the application's anonymous usage tracking in Convex. Users can try the product with limited daily messages before signing up.
 
-1. Go to your Supabase project dashboard
-2. Navigate to Authentication > Providers
-3. Toggle on "Allow anonymous sign-ins"
+### Database Setup (Convex)
 
-This allows users limited access to try the product before properly creating an account.
+vid0 uses Convex for the database. The schema is defined in TypeScript and automatically synced.
 
-### Database Schema
+1. Create a Convex account at [convex.dev](https://convex.dev)
+2. Create a new project
+3. Get your deployment URL and add to `.env.local`:
+   - `CONVEX_DEPLOYMENT`
+   - `NEXT_PUBLIC_CONVEX_URL`
 
-Create the following tables in your Supabase SQL editor:
+The schema is already defined in `convex/schema.ts`. When you run the app, Convex automatically creates the tables:
 
-```sql
--- Users table
-CREATE TABLE users (
-  id UUID PRIMARY KEY NOT NULL, -- Assuming the PK is from auth.users, typically not nullable
-  email TEXT NOT NULL,
-  anonymous BOOLEAN,
-  daily_message_count INTEGER,
-  daily_reset TIMESTAMPTZ,
-  display_name TEXT,
-  favorite_models TEXT[],
-  message_count INTEGER,
-  premium BOOLEAN,
-  profile_image TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  last_active_at TIMESTAMPTZ DEFAULT NOW(),
-  daily_pro_message_count INTEGER,
-  daily_pro_reset TIMESTAMPTZ,
-  system_prompt TEXT,
-  CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE -- Explicit FK definition
-);
+- `users` - User profiles linked to Clerk
+- `chats` - Chat sessions
+- `messages` - Chat messages
+- `projects` - Project organization
+- `userPreferences` - UI preferences
+- `userKeys` - Encrypted API keys (BYOK)
+- `feedback` - User feedback
+- `chatAttachments` - File attachments
+- `anonymousUsage` - Guest rate limiting
 
--- Projects table
-CREATE TABLE projects (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  user_id UUID NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT projects_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+### File Storage
 
--- Chats table
-CREATE TABLE chats (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL,
-  project_id UUID,
-  title TEXT,
-  model TEXT,
-  system_prompt TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  public BOOLEAN DEFAULT FALSE NOT NULL,
-  pinned BOOLEAN DEFAULT FALSE NOT NULL,
-  pinned_at TIMESTAMPTZ NULL,
-  CONSTRAINT chats_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT chats_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-);
+Convex includes built-in file storage. No additional setup required - file uploads are handled automatically through the `convex/files.ts` functions.
 
--- Messages table
-CREATE TABLE messages (
-  id SERIAL PRIMARY KEY, -- Using SERIAL for auto-incrementing integer ID
-  chat_id UUID NOT NULL,
-  user_id UUID,
-  content TEXT,
-  role TEXT NOT NULL CHECK (role IN ('system', 'user', 'assistant', 'data')), -- Added CHECK constraint
-  experimental_attachments JSONB, -- Storing Attachment[] as JSONB
-  parts JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT messages_chat_id_fkey FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,
-  CONSTRAINT messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  message_group_id TEXT,
-  model TEXT
-);
+### Convex + Clerk Integration
 
--- Chat attachments table
-CREATE TABLE chat_attachments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  chat_id UUID NOT NULL,
-  user_id UUID NOT NULL,
-  file_url TEXT NOT NULL,
-  file_name TEXT,
-  file_type TEXT,
-  file_size INTEGER, -- Assuming INTEGER for file size
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT fk_chat FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,
-  CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+To connect Clerk authentication with Convex:
 
--- Feedback table
-CREATE TABLE feedback (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL,
-  message TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- User keys table for BYOK (Bring Your Own Key) integration
-CREATE TABLE user_keys (
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  provider TEXT NOT NULL,
-  encrypted_key TEXT NOT NULL,
-  iv TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (user_id, provider)
-);
-
--- User preferences table
-CREATE TABLE user_preferences (
-  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  layout TEXT DEFAULT 'fullscreen',
-  prompt_suggestions BOOLEAN DEFAULT true,
-  show_tool_invocations BOOLEAN DEFAULT true,
-  show_conversation_previews BOOLEAN DEFAULT true,
-  multi_model_enabled BOOLEAN DEFAULT false,
-  hidden_models TEXT[] DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Optional: keep updated_at in sync for user_preferences
-CREATE OR REPLACE FUNCTION update_user_preferences_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER update_user_preferences_timestamp
-BEFORE UPDATE ON user_preferences
-FOR EACH ROW
-EXECUTE PROCEDURE update_user_preferences_updated_at();
-
--- RLS (Row Level Security) Reminder
--- Ensure RLS is enabled on these tables in your Supabase dashboard
--- and appropriate policies are created.
--- Example policies (adapt as needed):
--- ALTER TABLE users ENABLE ROW LEVEL SECURITY;
--- CREATE POLICY "Users can view their own data." ON users FOR SELECT USING (auth.uid() = id);
--- CREATE POLICY "Users can update their own data." ON users FOR UPDATE USING (auth.uid() = id);
--- ... add policies for other tables (chats, messages, etc.) ...
-```
-
-### Storage Setup
-
-Create the buckets `chat-attachments` and `avatars` in your Supabase dashboard:
-
-1. Go to Storage in your Supabase dashboard
-2. Click "New bucket" and create two buckets: `chat-attachments` and `avatars`
-3. Configure public access permissions for both buckets
+1. In Convex dashboard, go to Settings > Authentication
+2. Add Clerk as an auth provider
+3. Add your Clerk JWT issuer domain
+4. The `convex/auth.config.js` file is already configured
 
 ## Ollama Setup (Local AI Models)
 
@@ -502,15 +374,16 @@ bun dev
 
 The application will be available at [http://localhost:3000](http://localhost:3000).
 
-## Supabase Setup
+## Convex Setup
 
-vid0 requires Supabase for authentication and storage. Follow these steps to set up your Supabase project:
+vid0 uses Convex for its database. Follow these steps:
 
-1. Create a new project at [Supabase](https://supabase.com)
-2. Set up the database schema using the SQL script below
-3. Create storage buckets for chat attachments
-4. Configure authentication providers (Google OAuth)
-5. Get your API keys and add them to your `.env.local` file
+1. Create a new project at [convex.dev](https://convex.dev)
+2. Run `npx convex dev` to sync your schema
+3. Get your deployment URL and add to `.env.local`
+4. Configure Clerk integration in Convex dashboard
+
+See the "Database Setup (Convex)" section above for details.
 
 ## Docker Installation
 
@@ -592,11 +465,12 @@ docker build -t vid0 .
 
 # Run the container
 docker run -p 3000:3000 \
-  -e NEXT_PUBLIC_SUPABASE_URL=your_supabase_url \
-  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key \
-  -e SUPABASE_SERVICE_ROLE=your_supabase_service_role_key \
+  -e NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key \
+  -e CLERK_SECRET_KEY=your_clerk_secret_key \
+  -e CONVEX_DEPLOYMENT=your_convex_deployment \
+  -e NEXT_PUBLIC_CONVEX_URL=your_convex_url \
+  -e ANTHROPIC_API_KEY=your_anthropic_api_key \
   -e OPENAI_API_KEY=your_openai_api_key \
-  -e MISTRAL_API_KEY=your_mistral_api_key \
   vid0
 ```
 
@@ -711,10 +585,11 @@ You can customize various aspects of vid0 by modifying the configuration files:
 
 ### Common Issues
 
-1. **Connection to Supabase fails**
+1. **Connection to Convex fails**
 
-   - Check your Supabase URL and API keys
-   - Ensure your IP address is allowed in Supabase
+   - Check your Convex deployment URL
+   - Ensure your environment variables are set correctly
+   - Run `npx convex dev` to sync your schema
 
 2. **AI models not responding**
 

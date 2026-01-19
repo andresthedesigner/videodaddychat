@@ -29,8 +29,17 @@ export function AnimatedBackground({
   transition,
   enableHover = false,
 }: AnimatedBackgroundProps) {
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(defaultValue ?? null);
+  const [prevDefaultValue, setPrevDefaultValue] = useState(defaultValue);
   const uniqueId = useId();
+
+  // React 19 pattern: sync during render instead of useEffect
+  if (defaultValue !== prevDefaultValue) {
+    setPrevDefaultValue(defaultValue);
+    if (defaultValue !== undefined) {
+      setActiveId(defaultValue);
+    }
+  }
 
   const handleSetActiveId = (id: string | null) => {
     setActiveId(id);
@@ -39,12 +48,6 @@ export function AnimatedBackground({
       onValueChange(id);
     }
   };
-
-  useEffect(() => {
-    if (defaultValue !== undefined) {
-      setActiveId(defaultValue);
-    }
-  }, [defaultValue]);
 
   return Children.map(children, (child, index) => {
     // Cast to access strongly typed props

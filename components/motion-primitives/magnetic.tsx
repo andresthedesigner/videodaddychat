@@ -25,7 +25,8 @@ export function Magnetic({
   actionArea = 'self',
   springOptions = SPRING_CONFIG,
 }: MagneticProps) {
-  const [isHovered, setIsHovered] = useState(false);
+  // Initialize with true for global actionArea
+  const [isHovered, setIsHovered] = useState(actionArea === 'global');
   const ref = useRef<HTMLDivElement>(null);
 
   const x = useMotionValue(0);
@@ -77,9 +78,8 @@ export function Magnetic({
         parent.removeEventListener('mouseenter', handleParentEnter);
         parent.removeEventListener('mouseleave', handleParentLeave);
       };
-    } else if (actionArea === 'global') {
-      setIsHovered(true);
     }
+    // For 'global' actionArea, isHovered is initialized as true in useState
   }, [actionArea]);
 
   const handleMouseEnter = () => {

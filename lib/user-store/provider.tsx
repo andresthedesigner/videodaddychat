@@ -1,13 +1,18 @@
-// app/providers/user-provider.tsx
+/**
+ * User Provider
+ *
+ * Provides user context throughout the application.
+ * User data is sourced from:
+ * - Clerk for authentication (passed as initialUser from server)
+ * - Convex for real-time updates (via Convex queries in consuming components)
+ *
+ * Note: This provider mainly holds the initial user profile from Clerk.
+ * For real-time user data updates, prefer using Convex queries directly.
+ */
 "use client"
 
-import {
-  fetchUserProfile,
-  subscribeToUserUpdates,
-  updateUserProfile,
-} from "@/lib/user-store/api"
 import type { UserProfile } from "@/lib/user/types"
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useState, useCallback } from "react"
 
 type UserContextType = {
   user: UserProfile | null
@@ -29,42 +34,26 @@ export function UserProvider({
   const [user, setUser] = useState<UserProfile | null>(initialUser)
   const [isLoading, setIsLoading] = useState(false)
 
-  const refreshUser = async () => {
+  // Refresh user data
+  // Note: With Convex, prefer using real-time queries instead
+  const refreshUser = useCallback(async () => {
+    // With Convex integration, user data is typically fetched via Convex queries
+    // This function is kept for API compatibility but doesn't fetch externally
+    // Consuming components should use Convex useQuery for real-time updates
+  }, [])
+
+  // Update user profile
+  // Note: With Convex, prefer using mutations directly
+  const updateUser = useCallback(async (updates: Partial<UserProfile>) => {
     if (!user?.id) return
 
     setIsLoading(true)
     try {
-      const updatedUser = await fetchUserProfile(user.id)
-      if (updatedUser) setUser(updatedUser)
+      // Optimistically update local state
+      // Actual persistence should be handled via Convex mutations in consuming components
+      setUser((prev) => (prev ? { ...prev, ...updates } : null))
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const updateUser = async (updates: Partial<UserProfile>) => {
-    if (!user?.id) return
-
-    setIsLoading(true)
-    try {
-      const success = await updateUserProfile(user.id, updates)
-      if (success) {
-        setUser((prev) => (prev ? { ...prev, ...updates } : null))
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Set up realtime subscription for user data changes
-  useEffect(() => {
-    if (!user?.id) return
-
-    const unsubscribe = subscribeToUserUpdates(user.id, (newData) => {
-      setUser((prev) => (prev ? { ...prev, ...newData } : null))
-    })
-
-    return () => {
-      unsubscribe()
     }
   }, [user?.id])
 

@@ -26,15 +26,16 @@ export function SidebarProjectItem({ project }: SidebarProjectItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(project.name || "")
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [prevProjectName, setPrevProjectName] = useState(project.name)
   const inputRef = useRef<HTMLInputElement>(null)
-  const lastProjectNameRef = useRef(project.name)
   const isMobile = useBreakpoint(768)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const pathname = usePathname()
   const updateProjectName = useMutation(api.projects.updateName)
 
-  if (!isEditing && lastProjectNameRef.current !== project.name) {
-    lastProjectNameRef.current = project.name
+  // React 19 pattern: sync during render instead of useEffect
+  if (!isEditing && project.name !== prevProjectName) {
+    setPrevProjectName(project.name)
     setEditName(project.name || "")
   }
 

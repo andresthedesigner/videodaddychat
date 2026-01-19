@@ -8,6 +8,7 @@ import {
   createContext,
   useContext,
   isValidElement,
+  cloneElement,
 } from 'react';
 import {
   AnimatePresence,
@@ -123,22 +124,24 @@ function MorphingPopoverTrigger({
     );
   }
 
+  // Wrap child in motion.div instead of creating dynamic motion component
   if (asChild && isValidElement(children)) {
-    const MotionComponent = motion.create(
-      children.type as React.ForwardRefExoticComponent<Record<string, unknown>>
-    );
     const childProps = children.props as Record<string, unknown>;
 
     return (
-      <MotionComponent
-        {...childProps}
-        onClick={context.open}
+      <motion.div
         layoutId={`popover-trigger-${context.uniqueId}`}
-        className={childProps.className}
         key={context.uniqueId}
+        onClick={context.open}
         aria-expanded={context.isOpen}
         aria-controls={`popover-content-${context.uniqueId}`}
-      />
+        className="inline-block"
+      >
+        {cloneElement(children, {
+          ...childProps,
+          className: childProps.className,
+        } as React.HTMLAttributes<HTMLElement>)}
+      </motion.div>
     );
   }
 

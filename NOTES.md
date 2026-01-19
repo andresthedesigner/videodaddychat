@@ -6,11 +6,18 @@ Agentic memory for persistent context across sessions. AI agents should update t
 
 ## Session Log
 
+### 2026-01-18 — Convex Migration Completed
+
+- ✅ Completed migration from Supabase to Convex
+- Cleaned up legacy Supabase type files and deprecated API stubs
+- Updated documentation to reflect Convex patterns
+- User data now sourced from Clerk (auth) + Convex (app data)
+
 ### 2026-01-14 — Project Context Setup
 
 - Created core AI context files: `CLAUDE.md`, `.copilot-instructions.md`, `NOTES.md`, `spec.md`, `plan.md`
 - Reviewed existing `AGENTS.md` — comprehensive, includes gold standard examples
-- Project is in active migration: Supabase → Convex
+- Project was in active migration: Supabase → Convex (now complete)
 
 ---
 
@@ -54,8 +61,9 @@ The chat feature uses composed hooks for separation of concerns:
 
 | Issue | Status | Notes |
 |-------|--------|-------|
-| Supabase migration pending | In Progress | New features should use Convex patterns |
-| `convex/` directory not yet created | TODO | Needed for Convex schema |
+| Supabase migration | ✅ Complete | All data operations now use Convex |
+| Convex schema | ✅ Complete | See `convex/schema.ts` |
+| Legacy docs | ⚠️ Partial | Some docs still reference old patterns |
 
 ---
 

@@ -10,8 +10,18 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react"
 import { createPortal } from "react-dom"
+
+// Hydration-safe hook using useSyncExternalStore (React 19 pattern)
+const subscribe = () => () => {}
+const getSnapshot = () => true
+const getServerSnapshot = () => false
+
+function useHydrated() {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+}
 
 type FileUploadContextValue = {
   isDragging: boolean
@@ -165,12 +175,7 @@ type FileUploadContentProps = React.HTMLAttributes<HTMLDivElement>
 
 function FileUploadContent({ className, ...props }: FileUploadContentProps) {
   const context = useContext(FileUploadContext)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    return () => setMounted(false)
-  }, [])
+  const mounted = useHydrated()
 
   if (!context?.isDragging || !mounted || context?.disabled) {
     return null

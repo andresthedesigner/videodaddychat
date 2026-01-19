@@ -1,7 +1,7 @@
 import useClickOutside from "@/components/motion-primitives/useClickOutside"
 import { Button } from "@/components/ui/button"
 import { Quote } from "lucide-react"
-import { RefObject, useRef } from "react"
+import { RefObject, useLayoutEffect, useRef, useState } from "react"
 
 type QuoteButtonProps = {
   mousePosition: { x: number; y: number }
@@ -17,10 +17,17 @@ export function QuoteButton({
   onDismiss,
 }: QuoteButtonProps) {
   const buttonRef = useRef<HTMLDivElement>(null)
+  const [containerRect, setContainerRect] = useState<DOMRect | null>(null)
   useClickOutside(buttonRef as RefObject<HTMLElement>, onDismiss)
 
+  // Measure container rect in useLayoutEffect instead of during render
+  useLayoutEffect(() => {
+    if (messageContainerRef.current) {
+      setContainerRect(messageContainerRef.current.getBoundingClientRect())
+    }
+  }, [messageContainerRef, mousePosition])
+
   const buttonHeight = 60
-  const containerRect = messageContainerRef.current?.getBoundingClientRect()
   const position = containerRect
     ? {
         top: mousePosition.y - containerRect.top - buttonHeight,

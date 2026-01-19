@@ -56,8 +56,8 @@ export function useChatCore({
   const [hasDialogAuth, setHasDialogAuth] = useState(false)
   const [enableSearch, setEnableSearch] = useState(false)
 
-  // Refs and derived state
-  const hasSentFirstMessageRef = useRef(false)
+  // State for tracking first message sent (prevents redirect after sending)
+  const [hasSentFirstMessage, setHasSentFirstMessage] = useState(false)
   const prevChatIdRef = useRef<string | null>(chatId)
   const isAuthenticated = useMemo(() => !!user?.id, [user?.id])
   const systemPrompt = useMemo(
@@ -530,7 +530,8 @@ export function useChatCore({
     append,
     isAuthenticated,
     systemPrompt,
-    hasSentFirstMessageRef,
+    hasSentFirstMessage,
+    setHasSentFirstMessage,
 
     // Component state
     isSubmitting,

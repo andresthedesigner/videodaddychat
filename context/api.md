@@ -100,14 +100,13 @@ return result.toDataStreamResponse({
 ### Session Validation
 
 ```typescript
-// Validate session in API route
-import { createClient } from "@/lib/supabase/server"
+// Validate session in API route using Clerk
+import { auth } from "@clerk/nextjs/server"
 
 export async function POST(req: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { userId } = await auth()
   
-  if (!user) {
+  if (!userId) {
     return new Response(
       JSON.stringify({ error: "Unauthorized" }),
       { status: 401 }
@@ -366,39 +365,23 @@ export const DAILY_FILE_UPLOAD_LIMIT = 5
 ### Implementation
 
 ```typescript
-// app/api/chat/api.ts
-export async function validateAndTrackUsage({
-  userId,
-  model,
-  isAuthenticated,
-}: ValidationParams) {
-  const supabase = await createClient()
-  
-  // Get current usage
-  const { data: user } = await supabase
-    .from("users")
-    .select("daily_message_count, daily_reset")
-    .eq("id", userId)
-    .single()
-  
-  // Check if reset needed (midnight Pacific)
-  const needsReset = shouldResetDailyCount(user.daily_reset)
-  if (needsReset) {
-    await resetDailyCount(supabase, userId)
-    return supabase
-  }
-  
-  // Check limit
-  const limit = isAuthenticated 
-    ? AUTH_DAILY_MESSAGE_LIMIT 
-    : NON_AUTH_DAILY_MESSAGE_LIMIT
-    
-  if (user.daily_message_count >= limit) {
-    throw new Error("Daily message limit exceeded")
-  }
-  
-  return supabase
+// Rate limiting is handled via Convex mutations
+// See convex/usage.ts for implementation
+
+// Client-side usage check
+const { allowed, count } = await checkAndIncrementUsage({
+  isProModel: modelConfig.tier === "pro",
+})
+
+if (!allowed) {
+  throw new Error("Daily message limit exceeded")
 }
+
+// The Convex mutation handles:
+// - Checking if daily reset is needed (midnight Pacific)
+// - Incrementing the count atomically
+// - Returning whether the request is allowed
+```
 ```
 
 ## Client Integration

@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "motion/react"
 import dynamic from "next/dynamic"
 import { redirect } from "next/navigation"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useChatCore } from "./use-chat-core"
 import { useChatOperations } from "./use-chat-operations"
 import { useFileUpload } from "./use-file-upload"
@@ -108,7 +108,7 @@ export function Chat() {
     input,
     status,
     stop,
-    hasSentFirstMessageRef,
+    hasSentFirstMessage,
     isSubmitting,
     enableSearch,
     setEnableSearch,
@@ -203,19 +203,26 @@ export function Chat() {
     ]
   )
 
+  // Track if we should redirect - use ref to track if redirect was triggered
+  const hasRedirectedRef = useRef(false)
+  
   // Handle redirect for invalid chatId - only redirect if we're certain the chat doesn't exist
   // and we're not in a transient state during chat creation
-  if (
-    chatId &&
-    !isChatsLoading &&
-    !currentChat &&
-    !isSubmitting &&
-    status === "ready" &&
-    messages.length === 0 &&
-    !hasSentFirstMessageRef.current // Don't redirect if we've already sent a message in this session
-  ) {
-    return redirect("/")
-  }
+  useEffect(() => {
+    if (
+      chatId &&
+      !isChatsLoading &&
+      !currentChat &&
+      !isSubmitting &&
+      status === "ready" &&
+      messages.length === 0 &&
+      !hasSentFirstMessage && // Don't redirect if we've already sent a message in this session
+      !hasRedirectedRef.current
+    ) {
+      hasRedirectedRef.current = true
+      redirect("/")
+    }
+  }, [chatId, isChatsLoading, currentChat, isSubmitting, status, messages.length, hasSentFirstMessage])
 
   const showOnboarding = !chatId && messages.length === 0
 

@@ -108,15 +108,17 @@ export function MultiModelConversation({
     })
     return initial
   })
+  const [prevMessageGroups, setPrevMessageGroups] = useState(messageGroups)
 
-  // Update group responses when messageGroups changes
-  useEffect(() => {
+  // React 19 pattern: sync during render instead of useEffect
+  if (messageGroups !== prevMessageGroups) {
+    setPrevMessageGroups(messageGroups)
     const updated: Record<number, GroupedMessage["responses"]> = {}
     messageGroups.forEach((group, index) => {
       updated[index] = [...group.responses]
     })
     setGroupResponses(updated)
-  }, [messageGroups])
+  }
 
   return (
     <div className="relative flex h-full w-full flex-col items-center overflow-y-auto">

@@ -107,7 +107,7 @@ export default function ToolbarExpandable() {
 
   useEffect(() => {
     if (!widthContainer || maxWidth > 0) return;
-
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time DOM measurement
     setMaxWidth(widthContainer);
   }, [widthContainer, maxWidth]);
 
