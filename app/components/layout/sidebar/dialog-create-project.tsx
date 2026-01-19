@@ -37,7 +37,8 @@ export function DialogCreateProject({
       router.push(`/p/${projectId}`)
       setProjectName("")
       setIsOpen(false)
-    } catch {
+    } catch (error) {
+      console.error("Failed to create project:", error)
       toast({ title: "Failed to create project", status: "error" })
     } finally {
       setIsPending(false)

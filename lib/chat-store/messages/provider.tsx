@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import type { Message as MessageAISDK } from "ai"
 import { useMutation, useQuery } from "convex/react"
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useMemo, useState } from "react"
 import { writeToIndexedDB } from "../persist"
 import { useChatSession } from "../session/provider"
 
@@ -48,7 +48,7 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
   const deleteFromTimestampMutation = useMutation(api.messages.deleteFromTimestamp)
 
   // Convert Convex messages to AI SDK format
-  const messages: MessageAISDK[] = useMemo(() => {
+  const serverMessages: MessageAISDK[] = useMemo(() => {
     if (!convexMessages) return []
     return convexMessages.map((msg) => ({
       id: msg._id,
@@ -63,48 +63,62 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading = convexMessages === undefined && isValidConvexId
 
-  const [localMessages, setLocalMessages] = useState<MessageAISDK[]>([])
+  // Track optimistic messages per chat (keyed by chatId for natural isolation)
+  const [optimisticMessagesMap, setOptimisticMessagesMap] = useState<Map<string, MessageAISDK[]>>(new Map())
 
-  // Sync Convex messages with local state
-  useEffect(() => {
-    if (messages.length > 0) {
-      setLocalMessages(messages)
-    }
-  }, [messages])
+  // Get optimistic messages for current chat (memoized to prevent unnecessary re-renders)
+  const optimisticMessages = useMemo(
+    () => (chatId ? (optimisticMessagesMap.get(chatId) ?? []) : []),
+    [chatId, optimisticMessagesMap]
+  )
 
-  // Reset messages when chatId changes
-  useEffect(() => {
-    if (chatId === null) {
-      setLocalMessages([])
-    }
+  // Derive displayed messages from server data + optimistic messages
+  const messages = useMemo(() => {
+    // If chatId is null, return empty
+    if (chatId === null) return []
+
+    // Merge server messages with optimistic messages for this chat
+    const serverIds = new Set(serverMessages.map((m) => m.id))
+    const pendingMessages = optimisticMessages.filter((m) => !serverIds.has(m.id))
+
+    return [...serverMessages, ...pendingMessages]
+  }, [serverMessages, optimisticMessages, chatId])
+
+  // Helper to update optimistic messages for current chat
+  const updateOptimisticMessages = useCallback((updater: (prev: MessageAISDK[]) => MessageAISDK[]) => {
+    if (!chatId) return
+    setOptimisticMessagesMap((prevMap) => {
+      const newMap = new Map(prevMap)
+      const current = newMap.get(chatId) ?? []
+      newMap.set(chatId, updater(current))
+      return newMap
+    })
   }, [chatId])
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     // With Convex, data is real-time, so refresh is a no-op
-  }
+  }, [])
 
-  const cacheAndAddMessage = async (message: MessageAISDK) => {
+  const cacheAndAddMessage = useCallback(async (message: MessageAISDK) => {
     if (!chatId) return
 
-    // Optimistic update
-    setLocalMessages((prev) => [...prev, message])
+    // Optimistic update - add to pending messages
+    updateOptimisticMessages((prev) => [...prev, message])
 
     // Also cache locally
-    if (chatId) {
-      const updated = [...localMessages, message]
-      writeToIndexedDB("messages", { id: chatId, messages: updated })
-    }
+    const updated = [...serverMessages, ...optimisticMessages, message]
+    writeToIndexedDB("messages", { id: chatId, messages: updated })
 
     // Note: The actual database insert happens via addMessageMutation
     // when saveAllMessages is called at the end of a chat turn
-  }
+  }, [chatId, serverMessages, optimisticMessages, updateOptimisticMessages])
 
-  const saveAllMessages = async (newMessages: MessageAISDK[]) => {
+  const saveAllMessages = useCallback(async (newMessages: MessageAISDK[]) => {
     if (!chatId || chatId.startsWith("optimistic-")) return
 
     try {
       // Find new messages that need to be saved
-      const existingIds = new Set(messages.map((m) => m.id))
+      const existingIds = new Set(serverMessages.map((m) => m.id))
       const messagesToSave = newMessages.filter((m) => !existingIds.has(m.id))
 
       if (messagesToSave.length > 0) {
@@ -122,19 +136,22 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
         })
       }
 
-      setLocalMessages(newMessages)
+      // Update optimistic messages to match what was saved
+      updateOptimisticMessages(() => newMessages.filter((m) => !existingIds.has(m.id)))
+
       // Also cache locally
       await writeToIndexedDB("messages", { id: chatId, messages: newMessages })
     } catch (error) {
       console.error("Failed to save messages:", error)
       toast({ title: "Failed to save messages", status: "error" })
     }
-  }
+  }, [chatId, serverMessages, addBatchMutation, updateOptimisticMessages])
 
-  const deleteMessages = async () => {
+  const deleteMessages = useCallback(async () => {
     if (!chatId || chatId.startsWith("optimistic-")) return
 
-    setLocalMessages([])
+    // Clear optimistic messages immediately
+    updateOptimisticMessages(() => [])
 
     try {
       await clearMessagesMutation({ chatId: chatId as Id<"chats"> })
@@ -143,13 +160,13 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
       console.error("Failed to delete messages:", error)
       toast({ title: "Failed to delete messages", status: "error" })
     }
-  }
+  }, [chatId, clearMessagesMutation, updateOptimisticMessages])
 
-  const resetMessages = async () => {
-    setLocalMessages([])
-  }
+  const resetMessages = useCallback(async () => {
+    updateOptimisticMessages(() => [])
+  }, [updateOptimisticMessages])
 
-  const deleteMessagesFromTimestamp = async (timestamp: number) => {
+  const deleteMessagesFromTimestamp = useCallback(async (timestamp: number) => {
     if (!chatId || chatId.startsWith("optimistic-")) return
 
     await deleteFromTimestampMutation({
@@ -158,14 +175,31 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
     })
     // Local state is already trimmed by useChatCore, Convex will reactively update
     // Errors propagate to submitEdit which handles rollback and user notification
-  }
+  }, [chatId, deleteFromTimestampMutation])
+
+  // setMessages for backward compatibility - updates optimistic messages
+  const setMessages = useCallback((action: React.SetStateAction<MessageAISDK[]>) => {
+    if (typeof action === "function") {
+      updateOptimisticMessages((prev) => {
+        const allMessages = [...serverMessages, ...prev]
+        const newMessages = action(allMessages)
+        // Keep only messages not in server data
+        const serverIds = new Set(serverMessages.map((m) => m.id))
+        return newMessages.filter((m) => !serverIds.has(m.id))
+      })
+    } else {
+      // Direct set - keep only messages not in server data
+      const serverIds = new Set(serverMessages.map((m) => m.id))
+      updateOptimisticMessages(() => action.filter((m) => !serverIds.has(m.id)))
+    }
+  }, [serverMessages, updateOptimisticMessages])
 
   return (
     <MessagesContext.Provider
       value={{
-        messages: localMessages.length > 0 ? localMessages : messages,
+        messages,
         isLoading,
-        setMessages: setLocalMessages,
+        setMessages,
         refresh,
         saveAllMessages,
         cacheAndAddMessage,

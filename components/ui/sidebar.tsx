@@ -602,14 +602,17 @@ function SidebarMenuBadge({
 function SidebarMenuSkeleton({
   className,
   showIcon = false,
+  index = 0,
   ...props
 }: React.ComponentProps<"div"> & {
   showIcon?: boolean
+  index?: number
 }) {
-  // Random width between 50 to 90%.
+  // Deterministic width based on index (cycles through predefined widths)
   const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
-  }, [])
+    const widths = [50, 65, 75, 60, 80, 70, 85, 55, 90, 72]
+    return `${widths[index % widths.length]}%`
+  }, [index])
 
   return (
     <div

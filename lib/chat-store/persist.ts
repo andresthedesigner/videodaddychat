@@ -9,7 +9,7 @@ import {
 } from "idb-keyval"
 
 let dbInitPromise: Promise<void> | null = null
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const stores: Record<string, any> = {}
 
 const isClient = typeof window !== "undefined"

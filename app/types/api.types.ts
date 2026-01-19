@@ -1,5 +1,3 @@
-import type { Attachment } from "@ai-sdk/ui-utils"
-
 // JSON type for flexible data structures
 export type Json =
   | string
@@ -39,23 +37,6 @@ export interface ChatApiParams {
   model: string
   isAuthenticated: boolean
   token?: string
-}
-
-export interface LogUserMessageParams {
-  userId: string
-  chatId: string
-  content: string
-  attachments?: Attachment[]
-  model: string
-  isAuthenticated: boolean
-  message_group_id?: string
-}
-
-export interface StoreAssistantMessageParams {
-  chatId: string
-  messages: Message[]
-  message_group_id?: string
-  model?: string
 }
 
 export interface ApiErrorResponse {

@@ -215,7 +215,7 @@ export async function compactContext(
     id: `summary-${Date.now()}`,
     role: "system",
     content: `[Context Summary]\n${summary}`,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
   } as any
 
   const compactedMessages = [summaryMessage, ...recentMessages]
@@ -294,7 +294,7 @@ export function formatNote(note: StructuredNote): string {
  * @returns Array of structured notes
  */
 export async function extractNotesFromConversation(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   _messages: AIMessage[]
 ): Promise<StructuredNote[]> {
   // TODO: Implement with Claude Haiku

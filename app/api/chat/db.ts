@@ -9,9 +9,9 @@ const DEFAULT_STEP = 0
  */
 export function processFinalAssistantMessage(
   messages: Message[],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   _messageGroupId?: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   _model?: string
 ) {
   const parts: ContentPart[] = []

@@ -7,8 +7,6 @@ import { Message as MessageAISDK, streamText, ToolSet } from "ai"
 import {
   checkServerSideUsage,
   incrementServerSideUsage,
-  logUserMessage,
-  storeAssistantMessage,
   validateAndTrackUsage,
 } from "./api"
 import { createErrorResponse, extractErrorMessage } from "./utils"
@@ -88,20 +86,6 @@ export async function POST(req: Request) {
     // Increment usage count server-side with Convex
     await incrementServerSideUsage(convexToken, model, anonymousId)
 
-    const userMessage = messages[messages.length - 1]
-
-    // Log user message for debugging (actual storage via Convex client-side)
-    if (userMessage?.role === "user") {
-      await logUserMessage({
-        userId,
-        chatId,
-        content: userMessage.content,
-        model,
-        isAuthenticated,
-        message_group_id,
-      })
-    }
-
     const allModels = await getAllModels()
     const modelConfig = allModels.find((m) => m.id === model)
 
@@ -130,17 +114,6 @@ export async function POST(req: Request) {
       maxSteps: 10,
       onError: (err: unknown) => {
         console.error("Streaming error occurred:", err)
-      },
-
-      onFinish: async ({ response }) => {
-        // Log assistant message for debugging (actual storage via Convex client-side)
-        await storeAssistantMessage({
-          chatId,
-          messages:
-            response.messages as unknown as import("@/app/types/api.types").Message[],
-          message_group_id,
-          model,
-        })
       },
     })
 

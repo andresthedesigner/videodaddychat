@@ -97,8 +97,10 @@ export const saveAttachment = mutation({
     ).length
 
     if (todayCount >= DAILY_FILE_UPLOAD_LIMIT) {
-      // Clean up the orphaned storage file
-      await ctx.storage.delete(args.storageId)
+      // NOTE: We intentionally do NOT delete args.storageId here because we cannot
+      // verify it belongs to this user. Deleting without ownership verification would
+      // allow an attacker to delete other users' files by passing their storageId.
+      // Orphaned files should be cleaned up by a scheduled background job.
       throw new Error(
         `Daily file upload limit reached (${DAILY_FILE_UPLOAD_LIMIT} files per day)`
       )

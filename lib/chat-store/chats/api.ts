@@ -25,7 +25,7 @@ export async function getChat(chatId: string): Promise<Chat | null> {
 // These functions primarily manage the local IndexedDB cache.
 // ============================================================================
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
+ 
 // These functions are no-op stubs for backward compatibility.
 // With Convex, real-time queries and mutations handle data fetching.
 
@@ -57,7 +57,7 @@ export async function createChatInDb(
 export async function fetchAndCacheChats(_userId: string): Promise<Chats[]> {
   return await getCachedChats()
 }
-/* eslint-enable @typescript-eslint/no-unused-vars */
+ 
 
 export async function updateChatTitle(
   id: string,
@@ -80,7 +80,7 @@ export async function deleteChat(id: string): Promise<void> {
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export async function getUserChats(_userId: string): Promise<Chat[]> {
   const data = await getCachedChats()
   return data

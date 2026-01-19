@@ -57,8 +57,9 @@ export function SidebarProjectItem({ project }: SidebarProjectItemProps) {
           projectId: project._id,
           name: editName.trim(),
         })
-      } catch {
+      } catch (error) {
         toast({ title: "Failed to rename project", status: "error" })
+        console.error("Failed to rename project:", error)
         // Still close edit state to avoid stuck UI
       }
     }

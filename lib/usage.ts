@@ -25,7 +25,7 @@ const isProModel = (modelId: string) => !isFreeModel(modelId)
 /**
  * @deprecated Use Convex query `usage.checkUsage` instead
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export async function checkUsage(_userId: string) {
   // Return a default allowing usage - actual checks happen via Convex
   return {
@@ -38,7 +38,7 @@ export async function checkUsage(_userId: string) {
 /**
  * @deprecated Use Convex mutation `usage.incrementUsage` instead
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export async function incrementUsage(_userId: string): Promise<void> {
   // No-op - actual increment happens via Convex
 }
@@ -46,7 +46,7 @@ export async function incrementUsage(_userId: string): Promise<void> {
 /**
  * @deprecated Use Convex query `usage.checkUsage` with isProModel: true
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export async function checkProUsage(_userId: string) {
   return {
     dailyProCount: 0,
@@ -57,7 +57,7 @@ export async function checkProUsage(_userId: string) {
 /**
  * @deprecated Use Convex mutation `usage.incrementUsage` with isProModel: true
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 export async function incrementProUsage(_userId: string) {
   // No-op - actual increment happens via Convex
 }
@@ -90,11 +90,11 @@ export async function checkUsageByModel(
  * @deprecated Use Convex mutation `usage.incrementUsage` instead
  */
 export async function incrementUsageByModel(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   _userId: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   _modelId: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   _isAuthenticated: boolean
 ) {
   // No-op - actual increment happens via Convex
