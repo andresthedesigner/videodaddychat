@@ -7,7 +7,8 @@
     "dev": "concurrently --names \"next,convex\" -c \"cyan,magenta\" \"next dev --webpack\" \"convex dev\"",
     "dev:next": "next dev --webpack",
     "dev:convex": "convex dev",
-    "build": "convex deploy --cmd 'next build'",
+    "build": "convex deploy --cmd 'next build' --yes",
+    "build:next": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
