@@ -75,6 +75,7 @@ export function TextScramble({
     if (!trigger) return;
 
     scramble();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- scramble changes on every render, but we only want to trigger on `trigger` change
   }, [trigger]);
 
   return (

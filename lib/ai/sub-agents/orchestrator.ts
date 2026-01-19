@@ -322,6 +322,7 @@ class Orchestrator {
    */
   private async delegateToSubAgent(
     agentType: SubAgentType,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _input: SubAgentTaskInput
   ): Promise<SubAgentResponse> {
     const agentConfig = this.config.subAgents.get(agentType)

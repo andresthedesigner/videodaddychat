@@ -1,11 +1,7 @@
 import {
-  BookOpenText,
   Brain,
-  Code,
-  Lightbulb,
   Notepad,
   PaintBrush,
-  Sparkle,
   VideoCamera,
   TrendUp,
   MagnifyingGlass,
@@ -34,7 +30,7 @@ export const FREE_MODELS_IDS = [
 export const MODEL_DEFAULT = "gpt-4.1-nano"
 
 export const APP_NAME = "vid0"
-export const APP_DOMAIN = "https://videodaddy.chat"
+export const APP_DOMAIN = "https://vid0.chat"
 
 export const SUGGESTIONS = [
   {

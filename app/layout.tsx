@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ChatsProvider } from "@/lib/chat-store/chats/provider"
 import { ChatSessionProvider } from "@/lib/chat-store/session/provider"
+import { APP_DOMAIN } from "@/lib/config"
 import { ModelProvider } from "@/lib/model-store/provider"
 import { TanstackQueryProvider } from "@/lib/tanstack-query/tanstack-query-provider"
 import { UserPreferencesProvider } from "@/lib/user-preference-store/provider"
@@ -27,6 +28,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_DOMAIN),
   title: "vid0",
   description:
     "vid0 is an AI-powered assistant for YouTube creators. Get help with video ideas, titles, scripts, SEO, thumbnails, and growth strategies. Multi-model, BYOK-ready, and self-hostable.",
@@ -47,7 +49,7 @@ export default async function RootLayout({
         <Script
           defer
           src="https://assets.onedollarstats.com/stonks.js"
-          {...(isDev ? { "data-debug": "videodaddy.chat" } : {})}
+          {...(isDev ? { "data-debug": "vid0.chat" } : {})}
         />
       ) : null}
       <body

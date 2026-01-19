@@ -294,6 +294,7 @@ export function formatNote(note: StructuredNote): string {
  * @returns Array of structured notes
  */
 export async function extractNotesFromConversation(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _messages: AIMessage[]
 ): Promise<StructuredNote[]> {
   // TODO: Implement with Claude Haiku

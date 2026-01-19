@@ -1,6 +1,5 @@
 import { APP_DOMAIN } from "@/lib/config"
 import type { Metadata } from "next"
-import { notFound } from "next/navigation"
 import Article from "./article"
 
 export const dynamic = "force-static"

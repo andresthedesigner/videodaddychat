@@ -1,5 +1,5 @@
 'use client';
-import { ReactNode, ComponentProps } from 'react';
+import { ReactNode } from 'react';
 import { motion, Variants, HTMLMotionProps } from 'motion/react';
 import React from 'react';
 

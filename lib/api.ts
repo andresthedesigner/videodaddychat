@@ -1,4 +1,3 @@
-import { APP_DOMAIN } from "@/lib/config"
 import type { UserProfile } from "@/lib/user/types"
 import { fetchClient } from "./fetch"
 import { API_ROUTE_CREATE_GUEST, API_ROUTE_UPDATE_CHAT_MODEL } from "./routes"
@@ -97,7 +96,7 @@ export async function updateChatModel(chatId: string, model: string) {
  * Note: With Clerk, use the Clerk sign-in methods instead
  * @deprecated Use Clerk's useSignIn hook instead
  */
-export async function signInWithGoogle(_unused: unknown) {
+export async function signInWithGoogle() {
   console.warn("signInWithGoogle is deprecated. Use Clerk sign-in instead.")
   throw new Error("Use Clerk for authentication")
 }

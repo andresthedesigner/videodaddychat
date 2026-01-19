@@ -11,7 +11,9 @@ export type ProviderWithoutOllama = Exclude<Provider, "ollama">
  * @deprecated Use Convex userKeys queries instead
  */
 export async function getUserKey(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _provider: Provider
 ): Promise<string | null> {
   // With Convex, user keys should be fetched client-side via userKeys.getByProvider

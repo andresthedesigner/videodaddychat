@@ -68,6 +68,7 @@ export function DialogAuth({ open, setOpen }: DialogAuthProps) {
             onClick={handleSignInWithGoogle}
             disabled={isLoading || !isLoaded}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element -- External favicon, optimization not needed */}
             <img
               src="https://www.google.com/favicon.ico"
               alt="Google logo"

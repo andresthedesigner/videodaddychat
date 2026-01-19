@@ -11,13 +11,13 @@
 
 import { toast } from "@/components/ui/toast"
 import type { UserProfile } from "@/lib/user/types"
-import { useClerk } from "@clerk/nextjs"
 
 /**
  * Fetch user profile by ID
  * @deprecated Use Convex query `users.getCurrent` instead
  */
 export async function fetchUserProfile(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _id: string
 ): Promise<UserProfile | null> {
   // With Convex, user profiles are fetched via Convex queries
@@ -31,7 +31,9 @@ export async function fetchUserProfile(
  * @deprecated Use Convex mutation instead
  */
 export async function updateUserProfile(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _id: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _updates: Partial<UserProfile>
 ): Promise<boolean> {
   // With Convex, user updates are handled via Convex mutations
@@ -58,7 +60,9 @@ export async function signOutUser(): Promise<boolean> {
  * @deprecated Use Convex real-time queries instead
  */
 export function subscribeToUserUpdates(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _onUpdate: (newData: Partial<UserProfile>) => void
 ) {
   // With Convex, real-time updates are handled automatically via useQuery

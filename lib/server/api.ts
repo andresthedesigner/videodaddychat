@@ -17,7 +17,9 @@
  * @returns null - Authentication is handled by Convex + Clerk.
  */
 export async function validateUserIdentity(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _isAuthenticated: boolean
 ): Promise<null> {
   // With Convex + Clerk, authentication is handled by the Convex provider

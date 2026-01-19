@@ -125,7 +125,7 @@ function MorphingPopoverTrigger({
 
   if (asChild && isValidElement(children)) {
     const MotionComponent = motion.create(
-      children.type as React.ForwardRefExoticComponent<any>
+      children.type as React.ForwardRefExoticComponent<Record<string, unknown>>
     );
     const childProps = children.props as Record<string, unknown>;
 
@@ -190,6 +190,7 @@ function MorphingPopoverContent({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only need to track isOpen and close function, not entire context object
   }, [context.isOpen, context.close]);
 
   return (

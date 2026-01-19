@@ -65,6 +65,7 @@ export const Image = ({
   }
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element -- Renders dynamic base64/blob URLs, next/image doesn't support these
     <img
       src={src}
       alt={alt}

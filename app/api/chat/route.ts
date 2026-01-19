@@ -36,6 +36,8 @@ export async function POST(req: Request) {
       systemPrompt,
       enableSearch,
       message_group_id,
+      // editCutoffTimestamp is extracted but not yet used - planned for message edit feature
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       editCutoffTimestamp,
     } = (await req.json()) as ChatRequest
 

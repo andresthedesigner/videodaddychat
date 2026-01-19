@@ -5,7 +5,7 @@
 // Find it in Clerk Dashboard > API Keys > "Frontend API" or "JWT Issuer"
 // Format: https://YOUR_INSTANCE.clerk.accounts.dev
 
-export default {
+const authConfig = {
   providers: [
     {
       // TODO: Replace with your Clerk JWT Issuer domain
@@ -15,3 +15,5 @@ export default {
     },
   ],
 }
+
+export default authConfig

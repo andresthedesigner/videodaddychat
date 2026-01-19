@@ -181,9 +181,11 @@ export function DisclosureContent({
   );
 }
 
-export default {
+const DisclosureComponents = {
   Disclosure,
   DisclosureProvider,
   DisclosureTrigger,
   DisclosureContent,
 };
+
+export default DisclosureComponents;
