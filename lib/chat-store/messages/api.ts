@@ -1,4 +1,5 @@
 import type { Tables } from "@/app/types/database.types"
+import { USE_CONVEX } from "@/lib/config"
 import { createClient } from "@/lib/supabase/client"
 import { isSupabaseEnabled } from "@/lib/supabase/config"
 import type { Message as MessageAISDK } from "ai"
@@ -11,15 +12,13 @@ export interface ExtendedMessageAISDK extends MessageAISDK {
   model?: string
 }
 
-export async function getMessagesFromDb(
+// ============================================================================
+// Supabase Implementation (Legacy)
+// ============================================================================
+
+async function getMessagesFromDbSupabase(
   chatId: string
 ): Promise<MessageAISDK[]> {
-  // fallback to local cache only
-  if (!isSupabaseEnabled) {
-    const cached = await getCachedMessages(chatId)
-    return cached
-  }
-
   const supabase = createClient()
   if (!supabase) return []
 
@@ -48,15 +47,10 @@ export async function getMessagesFromDb(
   }))
 }
 
-export async function getLastMessagesFromDb(
+async function getLastMessagesFromDbSupabase(
   chatId: string,
   limit: number = 2
 ): Promise<MessageAISDK[]> {
-  if (!isSupabaseEnabled) {
-    const cached = await getCachedMessages(chatId)
-    return cached.slice(-limit)
-  }
-
   const supabase = createClient()
   if (!supabase) return []
 
@@ -86,7 +80,7 @@ export async function getLastMessagesFromDb(
   }))
 }
 
-async function insertMessageToDb(
+async function insertMessageToDbSupabase(
   chatId: string,
   message: ExtendedMessageAISDK
 ) {
@@ -104,7 +98,7 @@ async function insertMessageToDb(
   })
 }
 
-async function insertMessagesToDb(
+async function insertMessagesToDbSupabase(
   chatId: string,
   messages: ExtendedMessageAISDK[]
 ) {
@@ -124,7 +118,7 @@ async function insertMessagesToDb(
   await supabase.from("messages").insert(payload)
 }
 
-async function deleteMessagesFromDb(chatId: string) {
+async function deleteMessagesFromDbSupabase(chatId: string) {
   const supabase = createClient()
   if (!supabase) return
 
@@ -137,6 +131,10 @@ async function deleteMessagesFromDb(chatId: string) {
     console.error("Failed to clear messages from database:", error)
   }
 }
+
+// ============================================================================
+// Unified API (chooses Convex or Supabase based on feature flag)
+// ============================================================================
 
 type ChatMessageEntry = {
   id: string
@@ -162,14 +160,51 @@ export async function cacheMessages(
   await writeToIndexedDB("messages", { id: chatId, messages })
 }
 
+export async function getMessagesFromDb(
+  chatId: string
+): Promise<MessageAISDK[]> {
+  // With Convex, messages are fetched via the provider using useQuery
+  // This function is kept for backward compatibility
+  if (USE_CONVEX) {
+    return await getCachedMessages(chatId)
+  }
+
+  // fallback to local cache only
+  if (!isSupabaseEnabled) {
+    return await getCachedMessages(chatId)
+  }
+
+  return getMessagesFromDbSupabase(chatId)
+}
+
+export async function getLastMessagesFromDb(
+  chatId: string,
+  limit: number = 2
+): Promise<MessageAISDK[]> {
+  if (USE_CONVEX) {
+    const cached = await getCachedMessages(chatId)
+    return cached.slice(-limit)
+  }
+
+  if (!isSupabaseEnabled) {
+    const cached = await getCachedMessages(chatId)
+    return cached.slice(-limit)
+  }
+
+  return getLastMessagesFromDbSupabase(chatId, limit)
+}
+
 export async function addMessage(
   chatId: string,
   message: MessageAISDK
 ): Promise<void> {
-  await insertMessageToDb(chatId, message)
+  // With Convex, the provider handles database operations
+  if (!USE_CONVEX) {
+    await insertMessageToDbSupabase(chatId, message as ExtendedMessageAISDK)
+  }
+  
   const current = await getCachedMessages(chatId)
   const updated = [...current, message]
-
   await writeToIndexedDB("messages", { id: chatId, messages: updated })
 }
 
@@ -177,7 +212,11 @@ export async function setMessages(
   chatId: string,
   messages: MessageAISDK[]
 ): Promise<void> {
-  await insertMessagesToDb(chatId, messages)
+  // With Convex, the provider handles database operations
+  if (!USE_CONVEX) {
+    await insertMessagesToDbSupabase(chatId, messages as ExtendedMessageAISDK[])
+  }
+  
   await writeToIndexedDB("messages", { id: chatId, messages })
 }
 
@@ -186,6 +225,10 @@ export async function clearMessagesCache(chatId: string): Promise<void> {
 }
 
 export async function clearMessagesForChat(chatId: string): Promise<void> {
-  await deleteMessagesFromDb(chatId)
+  // With Convex, the provider handles database operations
+  if (!USE_CONVEX) {
+    await deleteMessagesFromDbSupabase(chatId)
+  }
+  
   await clearMessagesCache(chatId)
 }

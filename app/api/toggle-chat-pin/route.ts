@@ -1,9 +1,9 @@
+import { USE_CONVEX } from "@/lib/config"
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
     const { chatId, pinned } = await request.json()
 
     if (!chatId || typeof pinned !== "boolean") {
@@ -12,6 +12,15 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    // With Convex enabled, mutations are handled client-side
+    // This endpoint is kept for backward compatibility
+    if (USE_CONVEX) {
+      console.log("Convex enabled, pin toggle handled client-side")
+      return NextResponse.json({ success: true }, { status: 200 })
+    }
+
+    const supabase = await createClient()
 
     if (!supabase) {
       return NextResponse.json({ success: true }, { status: 200 })

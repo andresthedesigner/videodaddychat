@@ -14,6 +14,7 @@ import { getUserProfile } from "@/lib/user/api"
 import { ThemeProvider } from "next-themes"
 import Script from "next/script"
 import { LayoutClient } from "./layout-client"
+import { Providers } from "./providers"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,38 +53,40 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <TanstackQueryProvider>
-          <LayoutClient />
-          <UserProvider initialUser={userProfile}>
-            <ModelProvider>
-              <ChatsProvider userId={userProfile?.id}>
-                <ChatSessionProvider>
-                  <UserPreferencesProvider
-                    userId={userProfile?.id}
-                    initialPreferences={userProfile?.preferences}
-                  >
-                    <TooltipProvider
-                      delayDuration={200}
-                      skipDelayDuration={500}
+        <Providers>
+          <TanstackQueryProvider>
+            <LayoutClient />
+            <UserProvider initialUser={userProfile}>
+              <ModelProvider>
+                <ChatsProvider userId={userProfile?.id}>
+                  <ChatSessionProvider>
+                    <UserPreferencesProvider
+                      userId={userProfile?.id}
+                      initialPreferences={userProfile?.preferences}
                     >
-                      <ThemeProvider
-                        attribute="class"
-                        defaultTheme="system"
-                        enableSystem
-                        disableTransitionOnChange
+                      <TooltipProvider
+                        delayDuration={200}
+                        skipDelayDuration={500}
                       >
-                        <SidebarProvider defaultOpen>
-                          <Toaster position="top-center" />
-                          {children}
-                        </SidebarProvider>
-                      </ThemeProvider>
-                    </TooltipProvider>
-                  </UserPreferencesProvider>
-                </ChatSessionProvider>
-              </ChatsProvider>
-            </ModelProvider>
-          </UserProvider>
-        </TanstackQueryProvider>
+                        <ThemeProvider
+                          attribute="class"
+                          defaultTheme="system"
+                          enableSystem
+                          disableTransitionOnChange
+                        >
+                          <SidebarProvider defaultOpen>
+                            <Toaster position="top-center" />
+                            {children}
+                          </SidebarProvider>
+                        </ThemeProvider>
+                      </TooltipProvider>
+                    </UserPreferencesProvider>
+                  </ChatSessionProvider>
+                </ChatsProvider>
+              </ModelProvider>
+            </UserProvider>
+          </TanstackQueryProvider>
+        </Providers>
       </body>
     </html>
   )

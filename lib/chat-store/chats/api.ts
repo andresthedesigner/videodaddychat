@@ -2,14 +2,18 @@ import { readFromIndexedDB, writeToIndexedDB } from "@/lib/chat-store/persist"
 import type { Chat, Chats } from "@/lib/chat-store/types"
 import { createClient } from "@/lib/supabase/client"
 import { isSupabaseEnabled } from "@/lib/supabase/config"
-import { MODEL_DEFAULT } from "../../config"
+import { MODEL_DEFAULT, USE_CONVEX } from "../../config"
 import { fetchClient } from "../../fetch"
 import {
   API_ROUTE_TOGGLE_CHAT_PIN,
   API_ROUTE_UPDATE_CHAT_MODEL,
 } from "../../routes"
 
-export async function getChatsForUserInDb(userId: string): Promise<Chats[]> {
+// ============================================================================
+// Supabase Implementation (Legacy)
+// ============================================================================
+
+async function getChatsForUserInDbSupabase(userId: string): Promise<Chats[]> {
   const supabase = createClient()
   if (!supabase) return []
 
@@ -29,7 +33,7 @@ export async function getChatsForUserInDb(userId: string): Promise<Chats[]> {
   return data
 }
 
-export async function updateChatTitleInDb(id: string, title: string) {
+async function updateChatTitleInDbSupabase(id: string, title: string) {
   const supabase = createClient()
   if (!supabase) return
 
@@ -40,7 +44,7 @@ export async function updateChatTitleInDb(id: string, title: string) {
   if (error) throw error
 }
 
-export async function deleteChatInDb(id: string) {
+async function deleteChatInDbSupabase(id: string) {
   const supabase = createClient()
   if (!supabase) return
 
@@ -48,7 +52,7 @@ export async function deleteChatInDb(id: string) {
   if (error) throw error
 }
 
-export async function getAllUserChatsInDb(userId: string): Promise<Chats[]> {
+async function getAllUserChatsInDbSupabase(userId: string): Promise<Chats[]> {
   const supabase = createClient()
   if (!supabase) return []
 
@@ -62,7 +66,7 @@ export async function getAllUserChatsInDb(userId: string): Promise<Chats[]> {
   return data
 }
 
-export async function createChatInDb(
+async function createChatInDbSupabase(
   userId: string,
   title: string,
   model: string,
@@ -81,7 +85,63 @@ export async function createChatInDb(
   return data.id
 }
 
+// ============================================================================
+// Unified API (chooses Convex or Supabase based on feature flag)
+// ============================================================================
+
+export async function getChatsForUserInDb(userId: string): Promise<Chats[]> {
+  if (USE_CONVEX) {
+    // With Convex, chats are fetched via the provider using useQuery
+    // This function is kept for backward compatibility but won't be used
+    // when Convex is enabled (real-time queries handle this)
+    return await getCachedChats()
+  }
+  return getChatsForUserInDbSupabase(userId)
+}
+
+export async function updateChatTitleInDb(id: string, title: string) {
+  if (USE_CONVEX) {
+    // Convex mutations are called from the provider
+    // This is a no-op here as the provider handles it directly
+    return
+  }
+  return updateChatTitleInDbSupabase(id, title)
+}
+
+export async function deleteChatInDb(id: string) {
+  if (USE_CONVEX) {
+    // Convex mutations are called from the provider
+    return
+  }
+  return deleteChatInDbSupabase(id)
+}
+
+export async function getAllUserChatsInDb(userId: string): Promise<Chats[]> {
+  if (USE_CONVEX) {
+    return await getCachedChats()
+  }
+  return getAllUserChatsInDbSupabase(userId)
+}
+
+export async function createChatInDb(
+  userId: string,
+  title: string,
+  model: string,
+  systemPrompt: string
+): Promise<string | null> {
+  if (USE_CONVEX) {
+    // Convex mutations are called from the provider
+    return null
+  }
+  return createChatInDbSupabase(userId, title, model, systemPrompt)
+}
+
 export async function fetchAndCacheChats(userId: string): Promise<Chats[]> {
+  if (USE_CONVEX) {
+    // With Convex, we use real-time queries instead
+    return await getCachedChats()
+  }
+  
   if (!isSupabaseEnabled) {
     return await getCachedChats()
   }
@@ -106,7 +166,9 @@ export async function updateChatTitle(
   id: string,
   title: string
 ): Promise<void> {
-  await updateChatTitleInDb(id, title)
+  if (!USE_CONVEX) {
+    await updateChatTitleInDb(id, title)
+  }
   const all = await getCachedChats()
   const updated = (all as Chats[]).map((c) =>
     c.id === id ? { ...c, title } : c
@@ -115,7 +177,9 @@ export async function updateChatTitle(
 }
 
 export async function deleteChat(id: string): Promise<void> {
-  await deleteChatInDb(id)
+  if (!USE_CONVEX) {
+    await deleteChatInDb(id)
+  }
   const all = await getCachedChats()
   await writeToIndexedDB(
     "chats",
@@ -141,22 +205,47 @@ export async function createChat(
   model: string,
   systemPrompt: string
 ): Promise<string> {
-  const id = await createChatInDb(userId, title, model, systemPrompt)
-  const finalId = id ?? crypto.randomUUID()
+  if (!USE_CONVEX) {
+    const id = await createChatInDb(userId, title, model, systemPrompt)
+    const finalId = id ?? crypto.randomUUID()
 
+    await writeToIndexedDB("chats", {
+      id: finalId,
+      title,
+      model,
+      user_id: userId,
+      system_prompt: systemPrompt,
+      created_at: new Date().toISOString(),
+    })
+
+    return finalId
+  }
+  
+  // With Convex, the provider handles creation via mutations
+  const optimisticId = crypto.randomUUID()
   await writeToIndexedDB("chats", {
-    id: finalId,
+    id: optimisticId,
     title,
     model,
     user_id: userId,
     system_prompt: systemPrompt,
     created_at: new Date().toISOString(),
   })
-
-  return finalId
+  return optimisticId
 }
 
 export async function updateChatModel(chatId: string, model: string) {
+  if (USE_CONVEX) {
+    // With Convex, mutations are called from the provider
+    // Just update the cache here
+    const all = await getCachedChats()
+    const updated = (all as Chats[]).map((c) =>
+      c.id === chatId ? { ...c, model } : c
+    )
+    await writeToIndexedDB("chats", updated)
+    return { success: true }
+  }
+
   try {
     const res = await fetchClient(API_ROUTE_UPDATE_CHAT_MODEL, {
       method: "POST",
@@ -186,6 +275,17 @@ export async function updateChatModel(chatId: string, model: string) {
 }
 
 export async function toggleChatPin(chatId: string, pinned: boolean) {
+  if (USE_CONVEX) {
+    // With Convex, mutations are called from the provider
+    const all = await getCachedChats()
+    const now = new Date().toISOString()
+    const updated = (all as Chats[]).map((c) =>
+      c.id === chatId ? { ...c, pinned, pinned_at: pinned ? now : null } : c
+    )
+    await writeToIndexedDB("chats", updated)
+    return { success: true }
+  }
+
   try {
     const res = await fetchClient(API_ROUTE_TOGGLE_CHAT_PIN, {
       method: "POST",
@@ -219,6 +319,9 @@ export async function createNewChat(
   isAuthenticated?: boolean,
   projectId?: string
 ): Promise<Chats> {
+  // Note: With Convex enabled, the provider handles creation directly
+  // This function is used as a fallback or for Supabase mode
+  
   try {
     const payload: {
       userId: string

@@ -1,0 +1,9 @@
+# Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+
+# Allow .env.example (documentation file, no secrets)
+!.env.example
+
+# Keep ignoring actual env files with secrets
+.env
+.env.local
+.env.*.local

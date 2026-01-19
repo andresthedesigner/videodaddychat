@@ -1,8 +1,8 @@
+import { USE_CONVEX } from "@/lib/config"
 import { createClient } from "@/lib/supabase/server"
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
     const { chatId, model } = await request.json()
 
     if (!chatId || !model) {
@@ -12,6 +12,15 @@ export async function POST(request: Request) {
       )
     }
 
+    // With Convex enabled, mutations are handled client-side
+    // This endpoint is kept for backward compatibility
+    if (USE_CONVEX) {
+      console.log("Convex enabled, chat model update handled client-side")
+      return new Response(JSON.stringify({ success: true }), { status: 200 })
+    }
+
+    const supabase = await createClient()
+    
     // If Supabase is not available, we still return success
     if (!supabase) {
       console.log("Supabase not enabled, skipping DB update")
