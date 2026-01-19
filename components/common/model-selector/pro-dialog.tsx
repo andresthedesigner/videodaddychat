@@ -16,9 +16,10 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer"
 import { APP_NAME } from "@/lib/config"
-import { createClient } from "@/lib/supabase/client"
+import { api } from "@/convex/_generated/api"
 import { useUser } from "@/lib/user-store/provider"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation as useConvexMutation } from "convex/react"
+import { useMutation as useTanstackMutation } from "@tanstack/react-query"
 import Image from "next/image"
 
 type ProModelDialogProps = {
@@ -34,18 +35,11 @@ export function ProModelDialog({
 }: ProModelDialogProps) {
   const { user } = useUser()
   const isMobile = useBreakpoint(768)
-  const mutation = useMutation({
+  const submitFeedback = useConvexMutation(api.feedback.submit)
+  const mutation = useTanstackMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error("Missing user")
-
-      const supabase = await createClient()
-      if (!supabase) throw new Error("Missing supabase")
-      const { error } = await supabase.from("feedback").insert({
-        message: `I want access to ${currentModel}`,
-        user_id: user.id,
-      })
-
-      if (error) throw new Error(error.message)
+      await submitFeedback({ message: `I want access to ${currentModel}` })
     },
   })
 

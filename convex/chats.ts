@@ -187,6 +187,31 @@ export const togglePin = mutation({
 })
 
 /**
+ * Make a chat public (shareable via link)
+ */
+export const makePublic = mutation({
+  args: { chatId: v.id("chats") },
+  handler: async (ctx, { chatId }) => {
+    const chat = await ctx.db.get(chatId)
+    if (!chat) throw new Error("Chat not found")
+
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Not authenticated")
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique()
+
+    if (!user || chat.userId !== user._id) {
+      throw new Error("Not authorized")
+    }
+
+    await ctx.db.patch(chatId, { public: true, updatedAt: Date.now() })
+  },
+})
+
+/**
  * Delete a chat and its messages
  */
 export const remove = mutation({

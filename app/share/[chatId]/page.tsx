@@ -1,36 +1,26 @@
 import { APP_DOMAIN } from "@/lib/config"
-import { isSupabaseEnabled } from "@/lib/supabase/config"
-import { createClient } from "@/lib/supabase/server"
 import type { Metadata } from "next"
-import { notFound, redirect } from "next/navigation"
+import { notFound } from "next/navigation"
 import Article from "./article"
 
 export const dynamic = "force-static"
+
+/**
+ * Public chat sharing page
+ * Note: With Convex, this page fetches public chat data server-side
+ * TODO: Implement Convex HTTP client for server-side data fetching
+ */
 
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ chatId: string }>
 }): Promise<Metadata> {
-  if (!isSupabaseEnabled) {
-    return notFound()
-  }
-
   const { chatId } = await params
-  const supabase = await createClient()
 
-  if (!supabase) {
-    return notFound()
-  }
-
-  const { data: chat } = await supabase
-    .from("chats")
-    .select("title, created_at")
-    .eq("id", chatId)
-    .single()
-
-  const title = chat?.title || "Chat"
-  const description = "A chat in vid0"
+  // TODO: Fetch chat metadata from Convex
+  const title = "Shared Chat"
+  const description = "A conversation in vid0"
 
   return {
     title,
@@ -54,43 +44,21 @@ export default async function ShareChat({
 }: {
   params: Promise<{ chatId: string }>
 }) {
-  if (!isSupabaseEnabled) {
-    return notFound()
-  }
-
   const { chatId } = await params
-  const supabase = await createClient()
 
-  if (!supabase) {
-    return notFound()
-  }
-
-  const { data: chatData, error: chatError } = await supabase
-    .from("chats")
-    .select("id, title, created_at")
-    .eq("id", chatId)
-    .single()
-
-  if (chatError || !chatData) {
-    redirect("/")
-  }
-
-  const { data: messagesData, error: messagesError } = await supabase
-    .from("messages")
-    .select("*")
-    .eq("chat_id", chatId)
-    .order("created_at", { ascending: true })
-
-  if (messagesError || !messagesData) {
-    redirect("/")
-  }
+  // TODO: Implement Convex HTTP client for server-side data fetching
+  // For now, return a placeholder that will be enhanced with client-side data
+  
+  // This page needs to be updated to use Convex for fetching public chat data
+  // Current implementation returns a placeholder
+  console.log("Share page for chat:", chatId)
 
   return (
     <Article
-      messages={messagesData}
-      date={chatData.created_at || ""}
-      title={chatData.title || ""}
-      subtitle={"A conversation in vid0"}
+      messages={[]}
+      date={new Date().toISOString()}
+      title="Shared Chat"
+      subtitle="A conversation in vid0"
     />
   )
 }

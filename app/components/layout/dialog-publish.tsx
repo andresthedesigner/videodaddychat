@@ -26,8 +26,9 @@ import {
 } from "@/components/ui/tooltip"
 import { useChatSession } from "@/lib/chat-store/session/provider"
 import { APP_DOMAIN } from "@/lib/config"
-import { createClient } from "@/lib/supabase/client"
-import { isSupabaseEnabled } from "@/lib/supabase/config"
+import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
+import { useMutation } from "convex/react"
 import { Check, Copy, Globe, Spinner } from "@phosphor-icons/react"
 import type React from "react"
 import { useState } from "react"
@@ -38,10 +39,8 @@ export function DialogPublish() {
   const { chatId } = useChatSession()
   const isMobile = useBreakpoint(768)
   const [copied, setCopied] = useState(false)
-
-  if (!isSupabaseEnabled) {
-    return null
-  }
+  
+  const makePublicMutation = useMutation(api.chats.makePublic)
 
   if (!chatId) {
     return null
@@ -51,13 +50,11 @@ export function DialogPublish() {
 
   const openPage = () => {
     setOpenDialog(false)
-
     window.open(publicLink, "_blank")
   }
 
   const shareOnX = () => {
     setOpenDialog(false)
-
     const X_TEXT = `Check out this public page I created with vid0! ${publicLink}`
     window.open(`https://x.com/intent/tweet?text=${X_TEXT}`, "_blank")
   }
@@ -65,32 +62,18 @@ export function DialogPublish() {
   const handlePublish = async () => {
     setIsLoading(true)
 
-    const supabase = createClient()
-
-    if (!supabase) {
-      throw new Error("Supabase is not configured")
-    }
-
-    const { data, error } = await supabase
-      .from("chats")
-      .update({ public: true })
-      .eq("id", chatId)
-      .select()
-      .single()
-
-    if (error) {
-      console.error(error)
-    }
-
-    if (data) {
-      setIsLoading(false)
+    try {
+      await makePublicMutation({ chatId: chatId as Id<"chats"> })
       setOpenDialog(true)
+    } catch (error) {
+      console.error("Failed to make chat public:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const copyLink = () => {
     navigator.clipboard.writeText(publicLink)
-
     setCopied(true)
     setTimeout(() => {
       setCopied(false)

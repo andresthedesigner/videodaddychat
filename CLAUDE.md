@@ -139,8 +139,9 @@ When debugging issues:
 
 - **Streaming responses**: Must use `StreamingTextResponse` from AI SDK
 - **Server Components**: Cannot use hooks; use Client Components wrapper
-- **Supabase → Convex migration**: In progress, prefer Convex patterns for new code
-- **Auth**: Uses Clerk; avoid touching `middleware.ts` without review
+- **Database**: Uses Convex for all data operations (real-time queries + mutations)
+- **Auth**: Uses Clerk for authentication; avoid touching `middleware.ts` without review
+- **File Storage**: Uses Convex storage for file uploads
 
 ---
 

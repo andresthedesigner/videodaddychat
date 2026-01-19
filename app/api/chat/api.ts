@@ -1,25 +1,22 @@
-import { saveFinalAssistantMessage } from "@/app/api/chat/db"
 import type {
   ChatApiParams,
   LogUserMessageParams,
   StoreAssistantMessageParams,
-  SupabaseClientType,
 } from "@/app/types/api.types"
 import { FREE_MODELS_IDS, NON_AUTH_ALLOWED_MODELS } from "@/lib/config"
 import { getProviderForModel } from "@/lib/openproviders/provider-map"
 import { sanitizeUserInput } from "@/lib/sanitize"
-import { validateUserIdentity } from "@/lib/server/api"
-import { checkUsageByModel, incrementUsage } from "@/lib/usage"
 import { getUserKey, type ProviderWithoutOllama } from "@/lib/user-keys"
 
+/**
+ * Validate user access to model and check for required API keys
+ * Note: With Convex, usage tracking is handled client-side via the usage module
+ */
 export async function validateAndTrackUsage({
   userId,
   model,
   isAuthenticated,
-}: ChatApiParams): Promise<SupabaseClientType | null> {
-  const supabase = await validateUserIdentity(userId, isAuthenticated)
-  if (!supabase) return null
-
+}: ChatApiParams): Promise<null> {
   // Check if user is authenticated
   if (!isAuthenticated) {
     // For unauthenticated users, only allow specific models
@@ -47,31 +44,30 @@ export async function validateAndTrackUsage({
     }
   }
 
-  // Check usage limits for the model
-  await checkUsageByModel(supabase, userId, model, isAuthenticated)
-
-  return supabase
+  // With Convex, usage tracking is handled client-side via mutations
+  return null
 }
 
+/**
+ * Increment message count for the user
+ * Note: With Convex, this is handled via the usage.incrementUsage mutation
+ * @deprecated Use Convex mutation `usage.incrementUsage` client-side instead
+ */
 export async function incrementMessageCount({
-  supabase,
   userId,
 }: {
-  supabase: SupabaseClientType
   userId: string
 }): Promise<void> {
-  if (!supabase) return
-
-  try {
-    await incrementUsage(supabase, userId)
-  } catch (err) {
-    console.error("Failed to increment message count:", err)
-    // Don't throw error as this shouldn't block the chat
-  }
+  // With Convex, usage increment is handled client-side via mutations
+  // This is a no-op for backward compatibility
+  void userId
 }
 
+/**
+ * Log user message
+ * Note: With Convex, messages are saved via the MessagesProvider
+ */
 export async function logUserMessage({
-  supabase,
   userId,
   chatId,
   content,
@@ -80,39 +76,35 @@ export async function logUserMessage({
   isAuthenticated,
   message_group_id,
 }: LogUserMessageParams): Promise<void> {
-  if (!supabase) return
-
-  const { error } = await supabase.from("messages").insert({
-    chat_id: chatId,
-    role: "user",
-    content: sanitizeUserInput(content),
-    experimental_attachments: attachments,
-    user_id: userId,
+  // With Convex, messages are saved client-side via the MessagesProvider
+  // This function is kept for backward compatibility but is a no-op
+  console.log("User message logging should use Convex messages.add", {
+    userId,
+    chatId,
+    content: sanitizeUserInput(content).substring(0, 50) + "...",
+    hasAttachments: !!attachments?.length,
+    model,
+    isAuthenticated,
     message_group_id,
   })
-
-  if (error) {
-    console.error("Error saving user message:", error)
-  }
 }
 
+/**
+ * Store assistant message
+ * Note: With Convex, messages are saved via the MessagesProvider
+ */
 export async function storeAssistantMessage({
-  supabase,
   chatId,
   messages,
   message_group_id,
   model,
 }: StoreAssistantMessageParams): Promise<void> {
-  if (!supabase) return
-  try {
-    await saveFinalAssistantMessage(
-      supabase,
-      chatId,
-      messages,
-      message_group_id,
-      model
-    )
-  } catch (err) {
-    console.error("Failed to save assistant messages:", err)
-  }
+  // With Convex, messages are saved client-side via the MessagesProvider
+  // This function is kept for backward compatibility but is a no-op
+  console.log("Assistant message storage should use Convex messages.addBatch", {
+    chatId,
+    messageCount: messages.length,
+    message_group_id,
+    model,
+  })
 }

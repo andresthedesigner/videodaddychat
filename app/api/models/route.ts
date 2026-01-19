@@ -1,33 +1,22 @@
+import { auth } from "@clerk/nextjs/server"
 import {
   getAllModels,
-  getModelsForUserProviders,
   getModelsWithAccessFlags,
   refreshModelsCache,
 } from "@/lib/models"
-import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
+/**
+ * Get available AI models
+ * Note: With Convex, user-specific model access can be determined client-side
+ * by checking user keys via Convex queries
+ */
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const { userId } = await auth()
 
-    if (!supabase) {
-      const allModels = await getAllModels()
-      const models = allModels.map((model) => ({
-        ...model,
-        accessible: true,
-      }))
-      return new Response(JSON.stringify({ models }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-    }
-
-    const { data: authData } = await supabase.auth.getUser()
-
-    if (!authData?.user?.id) {
+    // For unauthenticated users, return models with access flags
+    if (!userId) {
       const models = await getModelsWithAccessFlags()
       return new Response(JSON.stringify({ models }), {
         status: 200,
@@ -37,35 +26,13 @@ export async function GET() {
       })
     }
 
-    const { data, error } = await supabase
-      .from("user_keys")
-      .select("provider")
-      .eq("user_id", authData.user.id)
-
-    if (error) {
-      console.error("Error fetching user keys:", error)
-      const models = await getModelsWithAccessFlags()
-      return new Response(JSON.stringify({ models }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-    }
-
-    const userProviders = data?.map((k: { provider: string }) => k.provider) || []
-
-    if (userProviders.length === 0) {
-      const models = await getModelsWithAccessFlags()
-      return new Response(JSON.stringify({ models }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-    }
-
-    const models = await getModelsForUserProviders(userProviders)
+    // For authenticated users, return all models
+    // User-specific access should be determined client-side based on their API keys
+    const allModels = await getAllModels()
+    const models = allModels.map((model) => ({
+      ...model,
+      accessible: true, // Let client determine actual access based on Convex userKeys
+    }))
 
     return new Response(JSON.stringify({ models }), {
       status: 200,

@@ -8,11 +8,26 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["shiki", "vscode-oniguruma"],
   images: {
     remotePatterns: [
+      // Convex file storage
       {
         protocol: "https",
-        hostname: "*.supabase.co",
+        hostname: "*.convex.cloud",
         port: "",
-        pathname: "/storage/v1/object/public/**",
+        pathname: "/**",
+      },
+      // GitHub avatars for user profiles
+      {
+        protocol: "https",
+        hostname: "avatars.githubusercontent.com",
+        port: "",
+        pathname: "/**",
+      },
+      // Clerk profile images
+      {
+        protocol: "https",
+        hostname: "img.clerk.com",
+        port: "",
+        pathname: "/**",
       },
     ],
   },

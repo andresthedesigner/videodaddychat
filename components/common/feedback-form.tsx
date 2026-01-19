@@ -2,9 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/toast"
-import { createClient } from "@/lib/supabase/client"
-import { isSupabaseEnabled } from "@/lib/supabase/config"
+import { api } from "@/convex/_generated/api"
 import { CaretLeft, SealCheck, Spinner } from "@phosphor-icons/react"
+import { useMutation } from "convex/react"
 import { AnimatePresence, motion } from "motion/react"
 import { useState } from "react"
 
@@ -23,10 +23,7 @@ export function FeedbackForm({ authUserId, onClose }: FeedbackFormProps) {
     "idle" | "submitting" | "success" | "error"
   >("idle")
   const [feedback, setFeedback] = useState("")
-
-  if (!isSupabaseEnabled) {
-    return null
-  }
+  const submitFeedback = useMutation(api.feedback.submit)
 
   const handleClose = () => {
     setFeedback("")
@@ -48,29 +45,7 @@ export function FeedbackForm({ authUserId, onClose }: FeedbackFormProps) {
     if (!feedback.trim()) return
 
     try {
-      const supabase = createClient()
-
-      if (!supabase) {
-        toast({
-          title: "Feedback is not supported in this deployment",
-          status: "info",
-        })
-        return
-      }
-
-      const { error } = await supabase.from("feedback").insert({
-        message: feedback,
-        user_id: authUserId,
-      })
-
-      if (error) {
-        toast({
-          title: `Error submitting feedback: ${error}`,
-          status: "error",
-        })
-        setStatus("error")
-        return
-      }
+      await submitFeedback({ message: feedback })
 
       await new Promise((resolve) => setTimeout(resolve, 1200))
 

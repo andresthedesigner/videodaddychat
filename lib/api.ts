@@ -1,9 +1,7 @@
-import type { SupabaseClientType } from "@/app/types/api.types"
 import { APP_DOMAIN } from "@/lib/config"
 import type { UserProfile } from "@/lib/user/types"
 import { fetchClient } from "./fetch"
 import { API_ROUTE_CREATE_GUEST, API_ROUTE_UPDATE_CHAT_MODEL } from "./routes"
-import { createClient } from "./supabase/client"
 
 /**
  * Creates a guest user record on the server
@@ -40,12 +38,7 @@ export class UsageLimitError extends Error {
 
 /**
  * Checks the user's daily usage and increments both overall and daily counters.
- * Resets the daily counter if a new day (UTC) is detected.
- * Uses the `anonymous` flag from the user record to decide which daily limit applies.
- *
- * @param supabase - Your Supabase client.
- * @param userId - The ID of the user.
- * @returns The remaining daily limit.
+ * Note: With Convex, this should be done via the usage.checkUsage query
  */
 export async function checkRateLimits(
   userId: string,
@@ -100,105 +93,43 @@ export async function updateChatModel(chatId: string, model: string) {
 }
 
 /**
- * Signs in user with Google OAuth via Supabase
+ * Signs in user with Google OAuth
+ * Note: With Clerk, use the Clerk sign-in methods instead
+ * @deprecated Use Clerk's useSignIn hook instead
  */
-export async function signInWithGoogle(supabase: SupabaseClientType) {
-  try {
-    const isDev = process.env.NODE_ENV === "development"
-
-    // Get base URL dynamically (will work in both browser and server environments)
-    const baseUrl = isDev
-      ? "http://localhost:3000"
-      : typeof window !== "undefined"
-        ? window.location.origin
-        : process.env.NEXT_PUBLIC_VERCEL_URL
-          ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-          : APP_DOMAIN
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${baseUrl}/auth/callback`,
-        queryParams: {
-          access_type: "offline",
-          prompt: "consent",
-        },
-      },
-    })
-
-    if (error) {
-      throw error
-    }
-
-    // Return the provider URL
-    return data
-  } catch (err) {
-    console.error("Error signing in with Google:", err)
-    throw err
-  }
+export async function signInWithGoogle(_unused: unknown) {
+  console.warn("signInWithGoogle is deprecated. Use Clerk sign-in instead.")
+  throw new Error("Use Clerk for authentication")
 }
 
+/**
+ * Get or create a guest user ID
+ * Note: With Clerk, guests can use the app without authentication
+ * or sign in via Clerk
+ */
 export const getOrCreateGuestUserId = async (
   user: UserProfile | null
 ): Promise<string | null> => {
   if (user?.id) return user.id
 
-  const supabase = createClient()
-
-  if (!supabase) {
-    console.warn("Supabase is not available in this deployment.")
-    return null
+  // With Clerk, we generate a local guest ID if no user is authenticated
+  // This is stored in localStorage and used for local state only
+  const existingGuestId = localStorage.getItem("guestUserId")
+  if (existingGuestId) {
+    return existingGuestId
   }
 
-  const existingGuestSessionUser = await supabase.auth.getUser()
-  if (
-    existingGuestSessionUser.data?.user &&
-    existingGuestSessionUser.data.user.is_anonymous
-  ) {
-    const anonUserId = existingGuestSessionUser.data.user.id
+  // Generate a new guest ID
+  const newGuestId = `guest_${crypto.randomUUID()}`
+  localStorage.setItem("guestUserId", newGuestId)
 
-    const profileCreationAttempted = localStorage.getItem(
-      `guestProfileAttempted_${anonUserId}`
-    )
-
-    if (!profileCreationAttempted) {
-      try {
-        await createGuestUser(anonUserId)
-        localStorage.setItem(`guestProfileAttempted_${anonUserId}`, "true")
-      } catch (error) {
-        console.error(
-          "Failed to ensure guest user profile exists for existing anonymous auth user:",
-          error
-        )
-        return null
-      }
-    }
-    return anonUserId
-  }
-
+  // Optionally register the guest on the server
   try {
-    const { data: anonAuthData, error: anonAuthError } =
-      await supabase.auth.signInAnonymously()
-
-    if (anonAuthError) {
-      console.error("Error during anonymous sign-in:", anonAuthError)
-      return null
-    }
-
-    if (!anonAuthData || !anonAuthData.user) {
-      console.error("Anonymous sign-in did not return a user.")
-      return null
-    }
-
-    const guestIdFromAuth = anonAuthData.user.id
-    await createGuestUser(guestIdFromAuth)
-    localStorage.setItem(`guestProfileAttempted_${guestIdFromAuth}`, "true")
-    return guestIdFromAuth
+    await createGuestUser(newGuestId)
   } catch (error) {
-    console.error(
-      "Error in getOrCreateGuestUserId during anonymous sign-in or profile creation:",
-      error
-    )
-    return null
+    console.warn("Failed to register guest user on server:", error)
+    // Continue anyway - guest can still use the app
   }
+
+  return newGuestId
 }

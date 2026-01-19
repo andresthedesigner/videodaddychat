@@ -2,7 +2,6 @@ import { SYSTEM_PROMPT_DEFAULT } from "@/lib/config"
 import { getAllModels } from "@/lib/models"
 import { getProviderForModel } from "@/lib/openproviders/provider-map"
 import type { ProviderWithoutOllama } from "@/lib/user-keys"
-import { Attachment } from "@ai-sdk/ui-utils"
 import { Message as MessageAISDK, streamText, ToolSet } from "ai"
 import {
   incrementMessageCount,
@@ -47,39 +46,23 @@ export async function POST(req: Request) {
       )
     }
 
-    const supabase = await validateAndTrackUsage({
+    await validateAndTrackUsage({
       userId,
       model,
       isAuthenticated,
     })
 
-    // Increment message count for successful validation
-    if (supabase) {
-      await incrementMessageCount({ supabase, userId })
-    }
+    // Increment message count (handled client-side with Convex)
+    await incrementMessageCount({ userId })
 
     const userMessage = messages[messages.length - 1]
 
-    // If editing, delete messages from cutoff BEFORE saving the new user message
-    if (supabase && editCutoffTimestamp) {
-      try {
-        await supabase
-          .from("messages")
-          .delete()
-          .eq("chat_id", chatId)
-          .gte("created_at", editCutoffTimestamp)
-      } catch (err) {
-        console.error("Failed to delete messages from cutoff:", err)
-      }
-    }
-
-    if (supabase && userMessage?.role === "user") {
+    // Log user message for debugging (actual storage via Convex client-side)
+    if (userMessage?.role === "user") {
       await logUserMessage({
-        supabase,
         userId,
         chatId,
         content: userMessage.content,
-        attachments: userMessage.experimental_attachments as Attachment[],
         model,
         isAuthenticated,
         message_group_id,
@@ -112,20 +95,17 @@ export async function POST(req: Request) {
       maxSteps: 10,
       onError: (err: unknown) => {
         console.error("Streaming error occurred:", err)
-        // Don't set streamError anymore - let the AI SDK handle it through the stream
       },
 
       onFinish: async ({ response }) => {
-        if (supabase) {
-          await storeAssistantMessage({
-            supabase,
-            chatId,
-            messages:
-              response.messages as unknown as import("@/app/types/api.types").Message[],
-            message_group_id,
-            model,
-          })
-        }
+        // Log assistant message for debugging (actual storage via Convex client-side)
+        await storeAssistantMessage({
+          chatId,
+          messages:
+            response.messages as unknown as import("@/app/types/api.types").Message[],
+          message_group_id,
+          model,
+        })
       },
     })
 

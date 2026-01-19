@@ -1,21 +1,13 @@
 "use client"
 
 import { toast } from "@/components/ui/toast"
-import { USE_CONVEX } from "@/lib/config"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { useMutation, useQuery } from "convex/react"
 import type { Message as MessageAISDK } from "ai"
+import { useMutation, useQuery } from "convex/react"
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import { writeToIndexedDB } from "../persist"
 import { useChatSession } from "../session/provider"
-import {
-  cacheMessages,
-  clearMessagesForChat,
-  getCachedMessages,
-  getMessagesFromDb,
-  setMessages as saveMessagesApi,
-} from "./api"
 
 interface MessagesContextType {
   messages: MessageAISDK[]
@@ -37,22 +29,18 @@ export function useMessages() {
   return context
 }
 
-// ============================================================================
-// Convex Provider Implementation
-// ============================================================================
-
-function ConvexMessagesProvider({ children }: { children: React.ReactNode }) {
+export function MessagesProvider({ children }: { children: React.ReactNode }) {
   const { chatId } = useChatSession()
-  
+
   // Only query if chatId is a valid Convex ID (not optimistic)
   const isValidConvexId = Boolean(chatId && !chatId.startsWith("optimistic-"))
-  
+
   // Convex real-time query for messages
   const convexMessages = useQuery(
     api.messages.getForChat,
     isValidConvexId ? { chatId: chatId as Id<"chats"> } : "skip"
   )
-  
+
   // Convex mutations
   const addBatchMutation = useMutation(api.messages.addBatch)
   const clearMessagesMutation = useMutation(api.messages.clearForChat)
@@ -66,7 +54,8 @@ function ConvexMessagesProvider({ children }: { children: React.ReactNode }) {
       content: msg.content ?? "",
       createdAt: new Date(msg._creationTime),
       parts: msg.parts as MessageAISDK["parts"],
-      experimental_attachments: msg.attachments as MessageAISDK["experimental_attachments"],
+      experimental_attachments:
+        msg.attachments as MessageAISDK["experimental_attachments"],
     }))
   }, [convexMessages])
 
@@ -125,7 +114,8 @@ function ConvexMessagesProvider({ children }: { children: React.ReactNode }) {
             parts: msg.parts,
             attachments: msg.experimental_attachments,
             model: (msg as unknown as { model?: string }).model,
-            messageGroupId: (msg as unknown as { message_group_id?: string }).message_group_id,
+            messageGroupId: (msg as unknown as { message_group_id?: string })
+              .message_group_id,
           })),
         })
       }
@@ -143,7 +133,7 @@ function ConvexMessagesProvider({ children }: { children: React.ReactNode }) {
     if (!chatId || chatId.startsWith("optimistic-")) return
 
     setLocalMessages([])
-    
+
     try {
       await clearMessagesMutation({ chatId: chatId as Id<"chats"> })
       await writeToIndexedDB("messages", { id: chatId, messages: [] })
@@ -173,119 +163,4 @@ function ConvexMessagesProvider({ children }: { children: React.ReactNode }) {
       {children}
     </MessagesContext.Provider>
   )
-}
-
-// ============================================================================
-// Supabase Provider Implementation (Legacy)
-// ============================================================================
-
-function SupabaseMessagesProvider({ children }: { children: React.ReactNode }) {
-  const [messages, setMessages] = useState<MessageAISDK[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const { chatId } = useChatSession()
-
-  useEffect(() => {
-    if (chatId === null) {
-      setMessages([])
-      setIsLoading(false)
-    }
-  }, [chatId])
-
-  useEffect(() => {
-    if (!chatId) return
-
-    const load = async () => {
-      setIsLoading(true)
-      const cached = await getCachedMessages(chatId)
-      setMessages(cached)
-
-      try {
-        const fresh = await getMessagesFromDb(chatId)
-        setMessages(fresh)
-        cacheMessages(chatId, fresh)
-      } catch (error) {
-        console.error("Failed to fetch messages:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    load()
-  }, [chatId])
-
-  const refresh = async () => {
-    if (!chatId) return
-
-    try {
-      const fresh = await getMessagesFromDb(chatId)
-      setMessages(fresh)
-    } catch {
-      toast({ title: "Failed to refresh messages", status: "error" })
-    }
-  }
-
-  const cacheAndAddMessage = async (message: MessageAISDK) => {
-    if (!chatId) return
-
-    try {
-      setMessages((prev) => {
-        const updated = [...prev, message]
-        writeToIndexedDB("messages", { id: chatId, messages: updated })
-        return updated
-      })
-    } catch {
-      toast({ title: "Failed to save message", status: "error" })
-    }
-  }
-
-  const saveAllMessages = async (newMessages: MessageAISDK[]) => {
-    if (!chatId) return
-
-    try {
-      await saveMessagesApi(chatId, newMessages)
-      setMessages(newMessages)
-    } catch {
-      toast({ title: "Failed to save messages", status: "error" })
-    }
-  }
-
-  const deleteMessages = async () => {
-    if (!chatId) return
-
-    setMessages([])
-    await clearMessagesForChat(chatId)
-  }
-
-  const resetMessages = async () => {
-    setMessages([])
-  }
-
-  return (
-    <MessagesContext.Provider
-      value={{
-        messages,
-        isLoading,
-        setMessages,
-        refresh,
-        saveAllMessages,
-        cacheAndAddMessage,
-        resetMessages,
-        deleteMessages,
-      }}
-    >
-      {children}
-    </MessagesContext.Provider>
-  )
-}
-
-// ============================================================================
-// Main Provider (chooses based on feature flag)
-// ============================================================================
-
-export function MessagesProvider({ children }: { children: React.ReactNode }) {
-  if (USE_CONVEX) {
-    return <ConvexMessagesProvider>{children}</ConvexMessagesProvider>
-  }
-  
-  return <SupabaseMessagesProvider>{children}</SupabaseMessagesProvider>
 }

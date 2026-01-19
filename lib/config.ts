@@ -12,22 +12,6 @@ import {
 } from "@phosphor-icons/react/dist/ssr"
 
 // ============================================================================
-// Feature Flags (Migration Period)
-// ============================================================================
-
-/**
- * Enable Clerk authentication (replaces Supabase Auth)
- * Set NEXT_PUBLIC_USE_CLERK=true in .env.local to enable
- */
-export const USE_CLERK = process.env.NEXT_PUBLIC_USE_CLERK === "true"
-
-/**
- * Enable Convex database (replaces Supabase Database)
- * Set NEXT_PUBLIC_USE_CONVEX=true in .env.local to enable
- */
-export const USE_CONVEX = process.env.NEXT_PUBLIC_USE_CONVEX === "true"
-
-// ============================================================================
 // Rate Limits & Usage
 // ============================================================================
 

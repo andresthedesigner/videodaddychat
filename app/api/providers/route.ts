@@ -1,23 +1,17 @@
-import { createClient } from "@/lib/supabase/server"
-import { getEffectiveApiKey, ProviderWithoutOllama } from "@/lib/user-keys"
+import { auth } from "@clerk/nextjs/server"
+import { ProviderWithoutOllama } from "@/lib/user-keys"
 import { NextRequest, NextResponse } from "next/server"
 
+/**
+ * Check if user has API key for a specific provider
+ * Note: With Convex, this should be done client-side via userKeys queries
+ */
 export async function POST(request: NextRequest) {
   try {
     const { provider, userId } = await request.json()
 
-    const supabase = await createClient()
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database not available" },
-        { status: 500 }
-      )
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user || user.id !== userId) {
+    const { userId: authUserId } = await auth()
+    if (!authUserId || authUserId !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -29,11 +23,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const apiKey = await getEffectiveApiKey(
-      userId,
-      provider as ProviderWithoutOllama
-    )
-
+    // With Convex, key checking should be done client-side
+    // Check if environment has a key for this provider
     const envKeyMap: Record<ProviderWithoutOllama, string | undefined> = {
       openai: process.env.OPENAI_API_KEY,
       mistral: process.env.MISTRAL_API_KEY,
@@ -44,9 +35,11 @@ export async function POST(request: NextRequest) {
       openrouter: process.env.OPENROUTER_API_KEY,
     }
 
+    const hasEnvKey = !!envKeyMap[provider as ProviderWithoutOllama]
+
     return NextResponse.json({
-      hasUserKey:
-        !!apiKey && apiKey !== envKeyMap[provider as ProviderWithoutOllama],
+      hasUserKey: false, // User keys should be checked via Convex
+      hasEnvKey,
       provider,
     })
   } catch (error) {

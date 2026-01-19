@@ -1,44 +1,36 @@
-import { decryptKey } from "./encryption"
 import { env } from "./openproviders/env"
 import { Provider } from "./openproviders/types"
-import { createClient } from "./supabase/server"
 
 export type { Provider } from "./openproviders/types"
 export type ProviderWithoutOllama = Exclude<Provider, "ollama">
 
+/**
+ * Get user's API key for a provider
+ * Note: With Convex, user keys should be fetched via userKeys.getByProvider query
+ * This function is kept for backward compatibility but returns null
+ * @deprecated Use Convex userKeys queries instead
+ */
 export async function getUserKey(
-  userId: string,
-  provider: Provider
+  _userId: string,
+  _provider: Provider
 ): Promise<string | null> {
-  try {
-    const supabase = await createClient()
-    if (!supabase) return null
-
-    const { data, error } = await supabase
-      .from("user_keys")
-      .select("encrypted_key, iv")
-      .eq("user_id", userId)
-      .eq("provider", provider)
-      .single()
-
-    if (error || !data) return null
-
-    return decryptKey(data.encrypted_key, data.iv)
-  } catch (error) {
-    console.error("Error retrieving user key:", error)
-    return null
-  }
+  // With Convex, user keys should be fetched client-side via userKeys.getByProvider
+  console.warn("getUserKey is deprecated, use Convex userKeys queries instead")
+  return null
 }
 
+/**
+ * Get the effective API key for a provider
+ * Checks user's key first, then falls back to environment variable
+ * Note: User key lookup should use Convex queries client-side
+ */
 export async function getEffectiveApiKey(
   userId: string | null,
   provider: ProviderWithoutOllama
 ): Promise<string | null> {
-  if (userId) {
-    const userKey = await getUserKey(userId, provider)
-    if (userKey) return userKey
-  }
-
+  // With Convex, user keys should be checked client-side
+  // Here we only return environment keys for server-side use
+  
   const envKeyMap: Record<ProviderWithoutOllama, string | undefined> = {
     openai: env.OPENAI_API_KEY,
     mistral: env.MISTRAL_API_KEY,

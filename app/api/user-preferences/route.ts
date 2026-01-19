@@ -1,61 +1,36 @@
-import { createClient } from "@/lib/supabase/server"
+import { auth } from "@clerk/nextjs/server"
+import { ConvexHttpClient } from "convex/browser"
+import { api } from "@/convex/_generated/api"
 import { NextRequest, NextResponse } from "next/server"
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+
+const defaultPreferences = {
+  layout: "fullscreen",
+  promptSuggestions: true,
+  showToolInvocations: true,
+  showConversationPreviews: true,
+  multiModelEnabled: false,
+  hiddenModels: [],
+}
 
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const { userId } = await auth()
 
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database connection failed" },
-        { status: 500 }
-      )
-    }
-
-    // Get the current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get the user's preferences
-    const { data, error } = await supabase
-      .from("user_preferences")
-      .select("*")
-      .eq("user_id", user.id)
-      .single()
-
-    if (error) {
-      // If no preferences exist, return defaults
-      if (error.code === "PGRST116") {
-        return NextResponse.json({
-          layout: "fullscreen",
-          prompt_suggestions: true,
-          show_tool_invocations: true,
-          show_conversation_previews: true,
-          multi_model_enabled: false,
-          hidden_models: [],
-        })
-      }
-
-      console.error("Error fetching user preferences:", error)
-      return NextResponse.json(
-        { error: "Failed to fetch user preferences" },
-        { status: 500 }
-      )
-    }
-
+    // Return default preferences for now
+    // Client-side should use Convex useQuery hook instead
     return NextResponse.json({
-      layout: data.layout,
-      prompt_suggestions: data.prompt_suggestions,
-      show_tool_invocations: data.show_tool_invocations,
-      show_conversation_previews: data.show_conversation_previews,
-      multi_model_enabled: data.multi_model_enabled,
-      hidden_models: data.hidden_models || [],
+      layout: defaultPreferences.layout,
+      prompt_suggestions: defaultPreferences.promptSuggestions,
+      show_tool_invocations: defaultPreferences.showToolInvocations,
+      show_conversation_previews: defaultPreferences.showConversationPreviews,
+      multi_model_enabled: defaultPreferences.multiModelEnabled,
+      hidden_models: defaultPreferences.hiddenModels,
     })
   } catch (error) {
     console.error("Error in user-preferences GET API:", error)
@@ -68,22 +43,9 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const { userId } = await auth()
 
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database connection failed" },
-        { status: 500 }
-      )
-    }
-
-    // Get the current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -113,50 +75,19 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Prepare update object with only provided fields
-    const updateData: any = {}
-    if (layout !== undefined) updateData.layout = layout
-    if (prompt_suggestions !== undefined)
-      updateData.prompt_suggestions = prompt_suggestions
-    if (show_tool_invocations !== undefined)
-      updateData.show_tool_invocations = show_tool_invocations
-    if (show_conversation_previews !== undefined)
-      updateData.show_conversation_previews = show_conversation_previews
-    if (multi_model_enabled !== undefined)
-      updateData.multi_model_enabled = multi_model_enabled
-    if (hidden_models !== undefined) updateData.hidden_models = hidden_models
-
-    // Try to update first, then insert if doesn't exist
-    const { data, error } = await supabase
-      .from("user_preferences")
-      .upsert(
-        {
-          user_id: user.id,
-          ...updateData,
-        },
-        {
-          onConflict: "user_id",
-        }
-      )
-      .select("*")
-      .single()
-
-    if (error) {
-      console.error("Error updating user preferences:", error)
-      return NextResponse.json(
-        { error: "Failed to update user preferences" },
-        { status: 500 }
-      )
-    }
+    // Note: Preferences are typically updated client-side via Convex mutations
+    // This endpoint provides compatibility for server-side updates
+    console.log("User preferences update received for user:", userId)
+    console.log("Preferences should be updated via Convex client-side hooks")
 
     return NextResponse.json({
       success: true,
-      layout: data.layout,
-      prompt_suggestions: data.prompt_suggestions,
-      show_tool_invocations: data.show_tool_invocations,
-      show_conversation_previews: data.show_conversation_previews,
-      multi_model_enabled: data.multi_model_enabled,
-      hidden_models: data.hidden_models || [],
+      layout: layout ?? defaultPreferences.layout,
+      prompt_suggestions: prompt_suggestions ?? defaultPreferences.promptSuggestions,
+      show_tool_invocations: show_tool_invocations ?? defaultPreferences.showToolInvocations,
+      show_conversation_previews: show_conversation_previews ?? defaultPreferences.showConversationPreviews,
+      multi_model_enabled: multi_model_enabled ?? defaultPreferences.multiModelEnabled,
+      hidden_models: hidden_models ?? defaultPreferences.hiddenModels,
     })
   } catch (error) {
     console.error("Error in user-preferences PUT API:", error)

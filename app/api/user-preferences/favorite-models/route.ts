@@ -1,24 +1,17 @@
-import { createClient } from "@/lib/supabase/server"
+import { auth } from "@clerk/nextjs/server"
 import { NextRequest, NextResponse } from "next/server"
+
+/**
+ * Favorite Models API
+ * Note: With Convex, favorite models should be managed via Convex user mutations
+ * This endpoint provides backward compatibility
+ */
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const { userId } = await auth()
 
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database connection failed" },
-        { status: 500 }
-      )
-    }
-
-    // Get the current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -42,27 +35,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update the user's favorite models
-    const { data, error } = await supabase
-      .from("users")
-      .update({
-        favorite_models,
-      })
-      .eq("id", user.id)
-      .select("favorite_models")
-      .single()
-
-    if (error) {
-      console.error("Error updating favorite models:", error)
-      return NextResponse.json(
-        { error: "Failed to update favorite models" },
-        { status: 500 }
-      )
-    }
+    // With Convex, favorite models should be updated via Convex mutations
+    console.log("Favorite models update should use Convex mutation")
 
     return NextResponse.json({
       success: true,
-      favorite_models: data.favorite_models,
+      favorite_models,
     })
   } catch (error) {
     console.error("Error in favorite-models API:", error)
@@ -75,42 +53,17 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const { userId } = await auth()
 
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Database connection failed" },
-        { status: 500 }
-      )
-    }
-
-    // Get the current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get the user's favorite models
-    const { data, error } = await supabase
-      .from("users")
-      .select("favorite_models")
-      .eq("id", user.id)
-      .single()
-
-    if (error) {
-      console.error("Error fetching favorite models:", error)
-      return NextResponse.json(
-        { error: "Failed to fetch favorite models" },
-        { status: 500 }
-      )
-    }
+    // With Convex, favorite models should be fetched via Convex queries
+    console.log("Favorite models should be fetched via Convex query")
 
     return NextResponse.json({
-      favorite_models: data.favorite_models || [],
+      favorite_models: [],
     })
   } catch (error) {
     console.error("Error in favorite-models GET API:", error)

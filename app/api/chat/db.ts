@@ -1,15 +1,16 @@
 import type { ContentPart, Message } from "@/app/types/api.types"
-import type { Database, Json } from "@/app/types/database.types"
-import type { SupabaseClient } from "@supabase/supabase-js"
 
 const DEFAULT_STEP = 0
 
-export async function saveFinalAssistantMessage(
-  supabase: SupabaseClient<Database>,
-  chatId: string,
+/**
+ * Process messages to extract final assistant content
+ * Note: With Convex, message saving is typically handled client-side via mutations.
+ * This function is kept for processing message content structure.
+ */
+export function processFinalAssistantMessage(
   messages: Message[],
-  message_group_id?: string,
-  model?: string
+  _messageGroupId?: string,
+  _model?: string
 ) {
   const parts: ContentPart[] = []
   const toolMap = new Map<string, ContentPart>()
@@ -74,19 +75,36 @@ export async function saveFinalAssistantMessage(
 
   const finalPlainText = textParts.join("\n\n")
 
-  const { error } = await supabase.from("messages").insert({
-    chat_id: chatId,
-    role: "assistant",
+  return {
     content: finalPlainText || "",
-    parts: parts as unknown as Json,
-    message_group_id,
+    parts,
+  }
+}
+
+/**
+ * Save final assistant message
+ * @deprecated Use Convex mutations client-side instead
+ */
+export async function saveFinalAssistantMessage(
+  chatId: string,
+  messages: Message[],
+  messageGroupId?: string,
+  model?: string
+) {
+  const { content, parts } = processFinalAssistantMessage(
+    messages,
+    messageGroupId,
+    model
+  )
+
+  // With Convex, this should be handled client-side via the MessagesProvider
+  console.warn(
+    "saveFinalAssistantMessage is deprecated - use Convex mutations instead"
+  )
+  console.log("Would save message for chat:", chatId, {
+    content,
+    parts,
+    messageGroupId,
     model,
   })
-
-  if (error) {
-    console.error("Error saving final assistant message:", error)
-    throw new Error(`Failed to save assistant message: ${error.message}`)
-  } else {
-    console.log("Assistant message saved successfully (merged).")
-  }
 }

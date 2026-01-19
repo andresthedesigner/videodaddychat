@@ -5,17 +5,8 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useMutation, useQuery } from "convex/react"
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
-import { MODEL_DEFAULT, SYSTEM_PROMPT_DEFAULT, USE_CONVEX } from "../../config"
+import { MODEL_DEFAULT, SYSTEM_PROMPT_DEFAULT } from "../../config"
 import type { Chats } from "../types"
-import {
-  createNewChat as createNewChatFromDb,
-  deleteChat as deleteChatFromDb,
-  fetchAndCacheChats,
-  getCachedChats,
-  toggleChatPin,
-  updateChatModel as updateChatModelFromDb,
-  updateChatTitle,
-} from "./api"
 
 interface ChatsContextType {
   chats: Chats[]
@@ -51,11 +42,7 @@ export function useChats() {
   return context
 }
 
-// ============================================================================
-// Convex Provider Implementation
-// ============================================================================
-
-function ConvexChatsProvider({
+export function ChatsProvider({
   children,
 }: {
   userId?: string
@@ -63,7 +50,7 @@ function ConvexChatsProvider({
 }) {
   // Convex real-time query for chats
   const convexChats = useQuery(api.chats.getForCurrentUser, {})
-  
+
   // Convex mutations
   const createChatMutation = useMutation(api.chats.create)
   const updateTitleMutation = useMutation(api.chats.updateTitle)
@@ -74,19 +61,23 @@ function ConvexChatsProvider({
   // Convert Convex chats to unified format
   const chats: Chats[] = useMemo(() => {
     if (!convexChats) return []
-    return convexChats.map((chat): Chats => ({
-      id: chat._id,
-      user_id: chat.userId,
-      title: chat.title ?? null,
-      model: chat.model ?? null,
-      system_prompt: chat.systemPrompt ?? null,
-      project_id: chat.projectId ?? null,
-      public: chat.public,
-      pinned: chat.pinned,
-      pinned_at: chat.pinnedAt ? new Date(chat.pinnedAt).toISOString() : null,
-      created_at: new Date(chat._creationTime).toISOString(),
-      updated_at: chat.updatedAt ? new Date(chat.updatedAt).toISOString() : null,
-    }))
+    return convexChats.map(
+      (chat): Chats => ({
+        id: chat._id,
+        user_id: chat.userId,
+        title: chat.title ?? null,
+        model: chat.model ?? null,
+        system_prompt: chat.systemPrompt ?? null,
+        project_id: chat.projectId ?? null,
+        public: chat.public,
+        pinned: chat.pinned,
+        pinned_at: chat.pinnedAt ? new Date(chat.pinnedAt).toISOString() : null,
+        created_at: new Date(chat._creationTime).toISOString(),
+        updated_at: chat.updatedAt
+          ? new Date(chat.updatedAt).toISOString()
+          : null,
+      })
+    )
   }, [convexChats])
 
   const isLoading = convexChats === undefined
@@ -107,7 +98,7 @@ function ConvexChatsProvider({
 
   const updateTitle = async (id: string, title: string) => {
     const previousState = [...localChats]
-    
+
     // Optimistic update
     setLocalChats((prev) => {
       const updated = prev.map((c) =>
@@ -147,7 +138,7 @@ function ConvexChatsProvider({
     userId: string,
     title?: string,
     model?: string,
-    isAuthenticated?: boolean,
+    _isAuthenticated?: boolean,
     systemPrompt?: string,
     projectId?: string
   ): Promise<Chats | undefined> => {
@@ -207,7 +198,9 @@ function ConvexChatsProvider({
 
   const updateChatModel = async (id: string, model: string) => {
     const prev = [...localChats]
-    setLocalChats((prev) => prev.map((c) => (c.id === id ? { ...c, model } : c)))
+    setLocalChats((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, model } : c))
+    )
 
     try {
       await updateModelMutation({ chatId: id as Id<"chats">, model })
@@ -286,239 +279,4 @@ function ConvexChatsProvider({
       {children}
     </ChatsContext.Provider>
   )
-}
-
-// ============================================================================
-// Supabase Provider Implementation (Legacy)
-// ============================================================================
-
-function SupabaseChatsProvider({
-  userId,
-  children,
-}: {
-  userId?: string
-  children: React.ReactNode
-}) {
-  const [isLoading, setIsLoading] = useState(true)
-  const [chats, setChats] = useState<Chats[]>([])
-
-  useEffect(() => {
-    if (!userId) return
-
-    const load = async () => {
-      setIsLoading(true)
-      const cached = await getCachedChats()
-      setChats(cached)
-
-      try {
-        const fresh = await fetchAndCacheChats(userId)
-        setChats(fresh)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    load()
-  }, [userId])
-
-  const refresh = async () => {
-    if (!userId) return
-
-    const fresh = await fetchAndCacheChats(userId)
-    setChats(fresh)
-  }
-
-  const updateTitleHandler = async (id: string, title: string) => {
-    let previousState: Chats[] | null = null
-    setChats((prev) => {
-      previousState = prev
-      const updatedChatWithNewTitle = prev.map((c) =>
-        c.id === id ? { ...c, title, updated_at: new Date().toISOString() } : c
-      )
-      return updatedChatWithNewTitle.sort(
-        (a, b) => +new Date(b.updated_at || "") - +new Date(a.updated_at || "")
-      )
-    })
-    try {
-      await updateChatTitle(id, title)
-    } catch {
-      if (previousState) setChats(previousState)
-      toast({ title: "Failed to update title", status: "error" })
-    }
-  }
-
-  const deleteChatHandler = async (
-    id: string,
-    currentChatId?: string,
-    redirect?: () => void
-  ) => {
-    const prev = [...chats]
-    setChats((prev) => prev.filter((c) => c.id !== id))
-
-    try {
-      await deleteChatFromDb(id)
-      if (id === currentChatId && redirect) redirect()
-    } catch {
-      setChats(prev)
-      toast({ title: "Failed to delete chat", status: "error" })
-    }
-  }
-
-  const createNewChat = async (
-    userId: string,
-    title?: string,
-    model?: string,
-    isAuthenticated?: boolean,
-    systemPrompt?: string,
-    projectId?: string
-  ) => {
-    if (!userId) return
-    const prev = [...chats]
-
-    const optimisticId = `optimistic-${Date.now().toString()}`
-    const optimisticChat = {
-      id: optimisticId,
-      title: title || "New Chat",
-      created_at: new Date().toISOString(),
-      model: model || MODEL_DEFAULT,
-      system_prompt: systemPrompt || SYSTEM_PROMPT_DEFAULT,
-      user_id: userId,
-      public: true,
-      updated_at: new Date().toISOString(),
-      project_id: null,
-      pinned: false,
-      pinned_at: null,
-    }
-    setChats((prev) => [optimisticChat, ...prev])
-
-    try {
-      const newChat = await createNewChatFromDb(
-        userId,
-        title,
-        model,
-        isAuthenticated,
-        projectId
-      )
-
-      setChats((prev) => [
-        newChat,
-        ...prev.filter((c) => c.id !== optimisticId),
-      ])
-
-      return newChat
-    } catch {
-      setChats(prev)
-      toast({ title: "Failed to create chat", status: "error" })
-    }
-  }
-
-  const resetChats = async () => {
-    setChats([])
-  }
-
-  const getChatById = (id: string) => {
-    const chat = chats.find((c) => c.id === id)
-    return chat
-  }
-
-  const updateChatModel = async (id: string, model: string) => {
-    const prev = [...chats]
-    setChats((prev) => prev.map((c) => (c.id === id ? { ...c, model } : c)))
-    try {
-      await updateChatModelFromDb(id, model)
-    } catch {
-      setChats(prev)
-      toast({ title: "Failed to update model", status: "error" })
-    }
-  }
-
-  const bumpChat = async (id: string) => {
-    setChats((prev) => {
-      const updatedChatWithNewUpdatedAt = prev.map((c) =>
-        c.id === id ? { ...c, updated_at: new Date().toISOString() } : c
-      )
-      return updatedChatWithNewUpdatedAt.sort(
-        (a, b) => +new Date(b.updated_at || "") - +new Date(a.updated_at || "")
-      )
-    })
-  }
-
-  const togglePinned = async (id: string, pinned: boolean) => {
-    const prevChats = [...chats]
-    const now = new Date().toISOString()
-
-    const updatedChats = prevChats.map((chat) =>
-      chat.id === id
-        ? { ...chat, pinned, pinned_at: pinned ? now : null }
-        : chat
-    )
-    const sortedChats = updatedChats.sort((a, b) => {
-      const aTime = new Date(a.updated_at || a.created_at || 0).getTime()
-      const bTime = new Date(b.updated_at || b.created_at || 0).getTime()
-      return bTime - aTime
-    })
-    setChats(sortedChats)
-    try {
-      await toggleChatPin(id, pinned)
-    } catch {
-      setChats(prevChats)
-      toast({
-        title: "Failed to update pin",
-        status: "error",
-      })
-    }
-  }
-
-  const pinnedChats = useMemo(
-    () =>
-      chats
-        .filter((c) => c.pinned && !c.project_id)
-        .slice()
-        .sort((a, b) => {
-          const at = a.pinned_at ? +new Date(a.pinned_at) : 0
-          const bt = b.pinned_at ? +new Date(b.pinned_at) : 0
-          return bt - at
-        }),
-    [chats]
-  )
-
-  return (
-    <ChatsContext.Provider
-      value={{
-        chats,
-        refresh,
-        updateTitle: updateTitleHandler,
-        deleteChat: deleteChatHandler,
-        setChats,
-        createNewChat,
-        resetChats,
-        getChatById,
-        updateChatModel,
-        bumpChat,
-        isLoading,
-        togglePinned,
-        pinnedChats,
-      }}
-    >
-      {children}
-    </ChatsContext.Provider>
-  )
-}
-
-// ============================================================================
-// Main Provider (chooses based on feature flag)
-// ============================================================================
-
-export function ChatsProvider({
-  userId,
-  children,
-}: {
-  userId?: string
-  children: React.ReactNode
-}) {
-  if (USE_CONVEX) {
-    return <ConvexChatsProvider userId={userId}>{children}</ConvexChatsProvider>
-  }
-  
-  return <SupabaseChatsProvider userId={userId}>{children}</SupabaseChatsProvider>
 }

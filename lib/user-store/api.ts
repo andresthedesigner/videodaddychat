@@ -1,95 +1,67 @@
-// @todo: move in /lib/user/api.ts
+/**
+ * User store API
+ * 
+ * Note: With Convex + Clerk, user data is managed through:
+ * - Clerk for authentication and basic profile (email, name, image)
+ * - Convex for application-specific user data (preferences, usage, etc.)
+ * 
+ * These functions are kept for backward compatibility but actual
+ * user operations should use Convex mutations/queries.
+ */
+
 import { toast } from "@/components/ui/toast"
-import { createClient } from "@/lib/supabase/client"
 import type { UserProfile } from "@/lib/user/types"
+import { useClerk } from "@clerk/nextjs"
 
+/**
+ * Fetch user profile by ID
+ * @deprecated Use Convex query `users.getCurrent` instead
+ */
 export async function fetchUserProfile(
-  id: string
+  _id: string
 ): Promise<UserProfile | null> {
-  const supabase = createClient()
-  if (!supabase) return null
-
-  const { data, error } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", id)
-    .single()
-
-  if (error || !data) {
-    console.error("Failed to fetch user:", error)
-    return null
-  }
-
-  // Don't return anonymous users
-  if (data.anonymous) return null
-
-  return {
-    ...data,
-    profile_image: data.profile_image || "",
-    display_name: data.display_name || "",
-  }
+  // With Convex, user profiles are fetched via Convex queries
+  // This function is kept for backward compatibility
+  console.warn("fetchUserProfile is deprecated, use Convex queries instead")
+  return null
 }
 
+/**
+ * Update user profile
+ * @deprecated Use Convex mutation instead
+ */
 export async function updateUserProfile(
-  id: string,
-  updates: Partial<UserProfile>
+  _id: string,
+  _updates: Partial<UserProfile>
 ): Promise<boolean> {
-  const supabase = createClient()
-  if (!supabase) return false
-
-  const { error } = await supabase.from("users").update(updates).eq("id", id)
-
-  if (error) {
-    console.error("Failed to update user:", error)
-    return false
-  }
-
-  return true
+  // With Convex, user updates are handled via Convex mutations
+  console.warn("updateUserProfile is deprecated, use Convex mutations instead")
+  return false
 }
 
+/**
+ * Sign out the current user
+ * Use the Clerk hook instead: const { signOut } = useClerk()
+ */
 export async function signOutUser(): Promise<boolean> {
-  const supabase = createClient()
-  if (!supabase) {
-    toast({
-      title: "Sign out is not supported in this deployment",
-      status: "info",
-    })
-    return false
-  }
-
-  const { error } = await supabase.auth.signOut()
-  if (error) {
-    console.error("Failed to sign out:", error)
-    return false
-  }
-
-  return true
+  // Note: This should be called from a component using useClerk().signOut()
+  toast({
+    title: "Use the Clerk signOut method instead",
+    description: "This function is deprecated",
+    status: "info",
+  })
+  return false
 }
 
+/**
+ * Subscribe to user updates
+ * @deprecated Use Convex real-time queries instead
+ */
 export function subscribeToUserUpdates(
-  userId: string,
-  onUpdate: (newData: Partial<UserProfile>) => void
+  _userId: string,
+  _onUpdate: (newData: Partial<UserProfile>) => void
 ) {
-  const supabase = createClient()
-  if (!supabase) return () => {}
-
-  const channel = supabase
-    .channel(`public:users:id=eq.${userId}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "UPDATE",
-        schema: "public",
-        table: "users",
-        filter: `id=eq.${userId}`,
-      },
-      (payload) => {
-        onUpdate(payload.new as Partial<UserProfile>)
-      }
-    )
-    .subscribe()
-
-  return () => {
-    supabase.removeChannel(channel)
-  }
+  // With Convex, real-time updates are handled automatically via useQuery
+  console.warn("subscribeToUserUpdates is deprecated, Convex handles real-time updates")
+  return () => {}
 }
