@@ -6,9 +6,9 @@ Living document for tracking current work and next steps.
 
 ## Current Sprint
 
-### Focus: Database Migration & AI Context Setup
+### Focus: Prompt-Kit Component Update
 
-**Goal**: Complete Convex migration foundation and establish AI agent context files.
+**Goal**: Consolidate all prompt-kit components into `components/ui/`, install missing components, and update existing ones to latest versions.
 
 ---
 
@@ -60,22 +60,40 @@ Living document for tracking current work and next steps.
   - [x] Update `AGENTS.md` with workflow overview
   - [x] Create `docs/workflow-examples.md` with practical examples
 
+### ✅ Recently Completed (Sprint 3)
+- [x] Set up Convex project
+  - [x] Install Convex: `bun add convex`
+  - [x] Run `npx convex init`
+  - [x] Create `convex/schema.ts`
+  - [x] Configure Clerk integration
+- [x] Complete Convex migration from Supabase
+- [x] Set up Clerk authentication
+- [x] Split login/sign-up routes with reactive user sync
+- [x] Clean up legacy Supabase files
+
 ### 🔄 In Progress
-- [ ] Set up Convex project
-  - [ ] Install Convex: `bun add convex`
-  - [ ] Run `npx convex init`
-  - [ ] Create `convex/schema.ts`
-  - [ ] Configure Clerk integration
+- [ ] Prompt-Kit component consolidation (see `docs/prompt-kit-update-plan.md`)
+  - [ ] **Phase 1**: Pre-flight checks & install dependencies
+  - [ ] **Phase 2**: Backup existing components
+  - [ ] **Phase 3**: Migrate 9 components from `prompt-kit/` to `ui/`
+  - [ ] **Phase 4**: Install 7 missing components (tool, source, chain-of-thought, etc.)
+  - [ ] **Phase 5**: Update existing components to latest versions
+  - [ ] **Phase 6**: Final verification (typecheck, lint, build)
 
 ### 📋 Next Up
-- [ ] Complete Convex migration
-- [ ] Set up Clerk authentication
-- [ ] YouTube Data API integration
+- [ ] YouTube Data API v3 integration
+  - [ ] Set up Google Cloud project
+  - [ ] Enable YouTube Data API v3
+  - [ ] Create YouTube service layer in `lib/youtube/`
+  - [ ] Implement video metadata retrieval
+- [ ] Transcript extraction (`youtube-transcript` package)
+- [ ] Competitor video analysis tools
 
 ### 🔮 Backlog
-- [ ] YouTube Data API integration
-- [ ] Transcript extraction
-- [ ] Sub-agent architecture
+- [ ] Sub-agent architecture implementation
+- [ ] YouTube Analytics API (OAuth 2.0)
+- [ ] Title generation & A/B suggestions
+- [ ] Thumbnail analysis (vision model)
 - [ ] Flowglad payment setup
 
 ---
@@ -94,15 +112,35 @@ Living document for tracking current work and next steps.
 
 <!-- Decisions that need to be made -->
 
-1. **Convex project name**: Use `video-daddy-chat` or shorter?
-2. **Environment setup**: Development vs staging Convex instance?
-3. **Migration strategy**: Incremental or big-bang Supabase → Convex?
+1. **Loader naming**: Keep both `loader.tsx` (12+ variants) and `loader-dots.tsx` (simple)?
+2. **YouTube quota management**: How to handle 10K units/day limit?
+3. **Transcript caching**: Cache duration for video transcripts?
 
 ---
 
 ## Notes from Current Work
 
 <!-- Scratch space for current session -->
+
+### 2026-01-19
+
+**Current Focus:** Prompt-Kit Component Update
+
+Before YouTube integration, consolidating UI components:
+1. Migrate 9 components from `components/prompt-kit/` → `components/ui/`
+2. Install 7 missing components (tool, source, chain-of-thought, feedback-bar, steps, system-message, image)
+3. Update existing components to latest prompt-kit versions
+4. Verify all imports updated to `@/components/ui/`
+
+See `docs/prompt-kit-update-plan.md` for detailed execution steps.
+
+### 2026-01-18
+
+**Convex Migration Complete!** Successfully migrated from Supabase to Convex:
+- All data operations now use Convex
+- Clerk authentication integrated
+- Legacy Supabase files cleaned up
+- User data sourced from Clerk (auth) + Convex (app data)
 
 ### 2026-01-13
 
@@ -122,18 +160,6 @@ Living document for tracking current work and next steps.
 **Nested CLAUDE.md Files (8 files):**
 - `app/CLAUDE.md`, `app/api/CLAUDE.md`, `app/auth/CLAUDE.md`, `app/components/CLAUDE.md`
 - `lib/CLAUDE.md`, `lib/ai/CLAUDE.md`, `components/CLAUDE.md`, `hooks/CLAUDE.md`
-
-**Cursor Rules (6 files):**
-- `001_core.mdc`, `002_security.mdc`, `100_typescript.mdc`
-- `101_react_nextjs.mdc`, `200_testing.mdc`, `201_api.mdc`
-
-**Claude Commands (5 files):**
-- `analyze.md`, `refactor.md`, `review.md`, `test.md`, `security/scan.md`
-
-Next session should focus on:
-1. Convex project initialization (`bun add convex && npx convex init`)
-2. Clerk authentication setup
-3. Begin Supabase → Convex migration
 
 ---
 
@@ -174,10 +200,21 @@ bun run build        # Production build
 - ✅ Claude commands with 5 slash commands
 - ✅ Nested CLAUDE.md files (8 modules covered)
 
-### Sprint 3 (Current)
-- 🔄 Convex project setup
-- 📋 Clerk authentication
-- 📋 Database migration
+### Sprint 3 (Completed)
+- ✅ Convex project setup
+- ✅ Clerk authentication
+- ✅ Database migration (Supabase → Convex)
+- ✅ Auth route split (login/sign-up)
+
+### Sprint 4 (Current)
+- 🔄 Prompt-Kit component consolidation
+- 📋 Install missing AI chat components
+- 📋 Update existing components to latest
+
+### Sprint 5 (Next)
+- 📋 YouTube Data API v3 integration
+- 📋 Transcript extraction
+- 📋 Competitor analysis tools
 
 ---
 

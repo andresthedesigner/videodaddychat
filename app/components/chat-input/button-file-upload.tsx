@@ -2,7 +2,7 @@ import {
   FileUpload,
   FileUploadContent,
   FileUploadTrigger,
-} from "@/components/prompt-kit/file-upload"
+} from "@/components/ui/file-upload"
 import { Button } from "@/components/ui/button"
 import {
   Popover,

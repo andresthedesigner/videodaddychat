@@ -1,6 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { motion } from "framer-motion"
 import React from "react"
 
 export interface LoaderProps {
@@ -17,6 +18,7 @@ export interface LoaderProps {
     | "text-blink"
     | "text-shimmer"
     | "loading-dots"
+    | "chat"
   size?: "sm" | "md" | "lg"
   text?: string
   className?: string
@@ -460,6 +462,37 @@ export function TextDotsLoader({
   )
 }
 
+export function ChatLoader({ className }: { className?: string }) {
+  const DOT_SIZE = "size-2"
+  const DOT_COLOR = "bg-primary/60"
+
+  const ANIMATION = {
+    y: ["0%", "-60%", "0%"],
+    opacity: [1, 0.7, 1],
+  }
+
+  const TRANSITION = {
+    duration: 0.6,
+    ease: "easeInOut" as const,
+    repeat: Infinity,
+    repeatType: "loop" as const,
+  }
+
+  return (
+    <div className={cn("flex items-center justify-center gap-1", className)}>
+      {[0, 0.1, 0.2].map((delay, i) => (
+        <motion.div
+          key={i}
+          className={`${DOT_SIZE} ${DOT_COLOR} rounded-full`}
+          animate={ANIMATION}
+          transition={{ ...TRANSITION, delay }}
+        />
+      ))}
+      <span className="sr-only">Loading</span>
+    </div>
+  )
+}
+
 function Loader({
   variant = "circular",
   size = "md",
@@ -491,6 +524,8 @@ function Loader({
       return <TextShimmerLoader text={text} size={size} className={className} />
     case "loading-dots":
       return <TextDotsLoader text={text} size={size} className={className} />
+    case "chat":
+      return <ChatLoader className={className} />
     default:
       return <CircularLoader size={size} className={className} />
   }

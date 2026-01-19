@@ -1,6 +1,6 @@
 "use client"
 
-import { PromptSuggestion } from "@/components/prompt-kit/prompt-suggestion"
+import { PromptSuggestion } from "@/components/ui/prompt-suggestion"
 import { TRANSITION_SUGGESTIONS } from "@/lib/motion"
 import { AnimatePresence, motion } from "motion/react"
 import React, { memo, useCallback, useMemo, useState } from "react"

@@ -1,4 +1,4 @@
-import { Markdown } from "@/components/prompt-kit/markdown"
+import { Markdown } from "@/components/ui/markdown"
 import { cn } from "@/lib/utils"
 import { CaretDownIcon } from "@phosphor-icons/react"
 import { AnimatePresence, motion } from "framer-motion"

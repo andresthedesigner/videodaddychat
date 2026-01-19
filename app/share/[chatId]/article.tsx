@@ -1,6 +1,6 @@
 import { getSources } from "@/app/components/chat/get-sources"
 import { SourcesList } from "@/app/components/chat/sources-list"
-import { Message, MessageContent } from "@/components/prompt-kit/message"
+import { Message, MessageContent } from "@/components/ui/message"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { Message as MessageAISDK } from "@ai-sdk/react"

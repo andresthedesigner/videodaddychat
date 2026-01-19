@@ -6,7 +6,7 @@ import {
   PromptInputAction,
   PromptInputActions,
   PromptInputTextarea,
-} from "@/components/prompt-kit/prompt-input"
+} from "@/components/ui/prompt-input"
 import { Button } from "@/components/ui/button"
 import { getModelInfo } from "@/lib/models"
 import { ArrowUpIcon, StopIcon } from "@phosphor-icons/react"
