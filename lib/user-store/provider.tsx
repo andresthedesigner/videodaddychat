@@ -80,7 +80,7 @@ export function UserProvider({
       // User doesn't exist in Convex - create them
       syncAttemptedRef.current = clerkUser.id
       
-      const email = clerkUser.emailAddresses[0]?.emailAddress ?? ""
+      const email = clerkUser.primaryEmailAddress?.emailAddress ?? ""
       const displayName = [clerkUser.firstName, clerkUser.lastName]
         .filter(Boolean)
         .join(" ")
@@ -115,7 +115,7 @@ export function UserProvider({
       setUser((prevUser) => ({
         // Identity (from Clerk)
         id: clerkUser.id,
-        email: clerkUser.emailAddresses[0]?.emailAddress || "",
+        email: clerkUser.primaryEmailAddress?.emailAddress || "",
         display_name: clerkUser.firstName
           ? `${clerkUser.firstName}${clerkUser.lastName ? ` ${clerkUser.lastName}` : ""}`
           : clerkUser.username || "",
