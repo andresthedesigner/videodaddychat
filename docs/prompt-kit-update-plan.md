@@ -5,16 +5,17 @@
 ## Execution Progress
 
 > **Last Updated**: January 19, 2026
-> **Current Status**: Phase 2 Complete — Ready for Phase 3
+> **Current Status**: Phase 4 Complete — Ready for Phase 5
 
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Phase 1: Pre-Flight | ✅ Complete | All dependencies already installed |
 | Phase 2: Analysis | ✅ Complete | All 9 conflicts analyzed, decisions approved |
 | Phase 3: Migration | ⏳ Ready | Includes loader consolidation |
-| Phase 4: Compare | ⏳ Pending | Compare 7 existing components with upstream |
+| Phase 4: Compare | ✅ Complete | All 7 components compared, 5 identical, 2 keep local |
 | Phase 5: Update | ⏳ Pending | |
 | Phase 6: Verification | ⏳ Pending | |
+| Phase 7: Rigorous Diff | ⏳ Pending | CLI-based double-check of all work |
 
 ### Key Findings
 
@@ -683,19 +684,37 @@ for component in tool source chain-of-thought feedback-bar steps system-message 
 done
 ```
 
-**4.3 Decision Matrix** (to be filled during execution)
+**4.3 Decision Matrix** ✅ COMPLETE
 
-| Component | Local Customizations? | Upstream Changes? | Action |
-|-----------|----------------------|-------------------|--------|
-| `tool.tsx` | ❓ Check | ❓ Check | TBD |
-| `source.tsx` | ❓ Check | ❓ Check | TBD |
-| `chain-of-thought.tsx` | ❓ Check | ❓ Check | TBD |
-| `feedback-bar.tsx` | ❓ Check | ❓ Check | TBD |
-| `steps.tsx` | ❓ Check | ❓ Check | TBD |
-| `system-message.tsx` | ❓ Check | ❓ Check | TBD |
-| `image.tsx` | ❓ Check | ❓ Check | TBD |
+| Component | Local Customizations? | Upstream Changes? | Action | Rationale |
+|-----------|----------------------|-------------------|--------|-----------|
+| `tool.tsx` | ❌ None | ❌ None | ✅ **Keep local** | IDENTICAL to upstream |
+| `source.tsx` | ✅ ESLint comments | ❌ None | ✅ **Keep local** | Has valid `@next/next/no-img-element` disable comments |
+| `chain-of-thought.tsx` | ❌ None | ❌ None | ✅ **Keep local** | IDENTICAL to upstream |
+| `feedback-bar.tsx` | ❌ None | ❌ None | ✅ **Keep local** | IDENTICAL to upstream |
+| `steps.tsx` | ❌ None | ❌ None | ✅ **Keep local** | IDENTICAL to upstream |
+| `system-message.tsx` | ❌ None | ❌ None | ✅ **Keep local** | IDENTICAL to upstream |
+| `image.tsx` | ✅ ESLint comments | ❌ None | ✅ **Keep local** | Has valid ESLint disable comments for hooks and img |
 
-**Success Criteria**: All 7 components compared, updates applied if beneficial.
+### Phase 4 Summary
+
+**Compared**: January 19, 2026
+
+**Results**:
+- **5 IDENTICAL**: `tool.tsx`, `chain-of-thought.tsx`, `feedback-bar.tsx`, `steps.tsx`, `system-message.tsx`
+- **2 Keep Local** (with ESLint comments): `source.tsx`, `image.tsx`
+
+**Local Customizations Preserved**:
+
+1. **`source.tsx`** — ESLint disable comments for `@next/next/no-img-element`:
+   - Dynamic external favicons (Google favicons API)
+   - `next/image` doesn't benefit for external favicon URLs
+
+2. **`image.tsx`** — ESLint disable comments:
+   - `react-hooks/set-state-in-effect` — Required for `URL.revokeObjectURL` cleanup
+   - `@next/next/no-img-element` — Dynamic base64/blob URLs not supported by `next/image`
+
+**Success Criteria**: ✅ All 7 components compared. No upstream updates needed — local versions are current or have valid customizations.
 
 ---
 
@@ -856,6 +875,109 @@ bun run dev
 
 ---
 
+### Phase 7: Rigorous Diff Verification
+
+> **Double-check all prior work** — CLI-based verification to ensure components match expectations.
+
+**7.1 Fetch and Diff All Components**
+
+Use `curl` + `jq` + `diff` for byte-level comparison against upstream:
+
+```bash
+# Create temp directory for upstream sources
+mkdir -p /tmp/prompt-kit-upstream
+
+# Fetch all upstream sources and diff against local
+for component in tool source chain-of-thought feedback-bar steps system-message image; do
+  echo "=== $component ==="
+  curl -sL "https://prompt-kit.com/c/${component}.json" | jq -r '.files[0].content' > "/tmp/prompt-kit-upstream/${component}.tsx"
+  diff -u "components/ui/${component}.tsx" "/tmp/prompt-kit-upstream/${component}.tsx" || echo "(differences shown above)"
+  echo ""
+done
+```
+
+**7.2 Expected Results**
+
+| Component | Expected Diff | Explanation |
+|-----------|---------------|-------------|
+| `tool.tsx` | Trailing newline only | Functionally identical |
+| `chain-of-thought.tsx` | Trailing newline only | Functionally identical |
+| `feedback-bar.tsx` | Trailing newline only | Functionally identical |
+| `steps.tsx` | Trailing newline only | Functionally identical |
+| `system-message.tsx` | Trailing newline only | Functionally identical |
+| `source.tsx` | ESLint comments removed | Local adds valid `@next/next/no-img-element` disables |
+| `image.tsx` | ESLint comments removed | Local adds valid hook + img element disables |
+
+**7.3 ESLint Disable Validation Checklist**
+
+For each ESLint disable comment, verify it meets ALL criteria:
+
+- [ ] **Documented reason** — Comment explains why the disable is necessary
+- [ ] **Technical limitation** — Framework constraint, not code smell
+- [ ] **No workaround** — Disabling is the only viable solution
+- [ ] **Minimal scope** — `eslint-disable-next-line`, not block or file-level
+
+**Current ESLint Disables (Validated)**:
+
+| File | Rule | Line | Valid? | Reason |
+|------|------|------|--------|--------|
+| `source.tsx` | `@next/next/no-img-element` | ~71 | ✅ | External favicon API, dynamic domains |
+| `source.tsx` | `@next/next/no-img-element` | ~110 | ✅ | Same (HoverCard content) |
+| `image.tsx` | `react-hooks/set-state-in-effect` | ~42 | ✅ | Required for `URL.revokeObjectURL` cleanup |
+| `image.tsx` | `@next/next/no-img-element` | ~69 | ✅ | `next/image` doesn't support base64/blob URLs |
+
+**7.4 Verify No Unauthorized Disables**
+
+```bash
+# Find ALL eslint-disable comments in prompt-kit components
+echo "=== ESLint disables in prompt-kit components ==="
+for component in tool source chain-of-thought feedback-bar steps system-message image chat-container code-block file-upload loader markdown message prompt-input prompt-suggestion scroll-button; do
+  if [ -f "components/ui/${component}.tsx" ]; then
+    grep -n "eslint-disable" "components/ui/${component}.tsx" 2>/dev/null && echo "  ↑ in ${component}.tsx" || true
+  fi
+done
+echo ""
+echo "=== Summary ==="
+grep -r "eslint-disable" components/ui/*.tsx 2>/dev/null | wc -l | xargs echo "Total eslint-disable comments:"
+```
+
+**Expected**: Only 4 ESLint disable comments total (2 in `source.tsx`, 2 in `image.tsx`).
+
+**7.5 Verify Migrated Components**
+
+After Phase 3 migration, verify the moved components match their prompt-kit origins:
+
+```bash
+# Components that should match prompt-kit/ versions (after Phase 3 move)
+for component in code-block message markdown prompt-input; do
+  echo "=== $component ==="
+  curl -sL "https://prompt-kit.com/c/${component}.json" | jq -r '.files[0].content' > "/tmp/prompt-kit-upstream/${component}.tsx"
+  
+  if [ -f "components/ui/${component}.tsx" ]; then
+    diff -u "components/ui/${component}.tsx" "/tmp/prompt-kit-upstream/${component}.tsx" | head -30 || echo "(no diff or truncated)"
+  else
+    echo "WARNING: File not found!"
+  fi
+  echo ""
+done
+```
+
+---
+
+> #### ⏸️ CHECKPOINT 6: Rigorous Verification Complete
+>
+> **AI Action**: Report verification results:
+> - Number of components checked
+> - Any unexpected differences
+> - ESLint disable count validation
+>
+> **Human Action**: Review and respond:
+> - `Verification passed, finalize` — Proceed to completion
+> - `Investigate [component]` — AI digs deeper into specific file
+> - `Revert [component]` — Restore from upstream
+
+---
+
 ## Rollback Procedure
 
 Git-based rollback (no file backups needed):
@@ -952,10 +1074,13 @@ import { Reasoning } from "@/app/components/chat/reasoning"
 - [ ] Fix internal import in `markdown.tsx`
 - [ ] `components/prompt-kit/` directory removed
 
-### Phase 4: Compare ⏳ PENDING
-- [ ] Compare 7 existing components with upstream prompt-kit sources
-- [ ] Document any differences found
-- [ ] Apply updates if beneficial (no local customizations)
+### Phase 4: Compare ✅ COMPLETE
+- [x] Compare 7 existing components with upstream prompt-kit sources
+- [x] Document any differences found
+- [x] All local versions kept (5 identical, 2 with valid ESLint customizations)
+- [x] ESLint disable comments validated:
+  - `source.tsx`: `@next/next/no-img-element` (external favicons)
+  - `image.tsx`: `react-hooks/set-state-in-effect` + `@next/next/no-img-element` (blob URLs)
 
 ### Phase 5: Update (Optional)
 - [ ] ⏸️ **CHECKPOINT 4**: Human decided update scope
@@ -970,6 +1095,17 @@ import { Reasoning } from "@/app/components/chat/reasoning"
 - [ ] `bun run build` passes
 - [ ] Dev server runs without errors
 - [ ] ⏸️ **CHECKPOINT 5**: Human completed manual smoke test
+
+### Phase 7: Rigorous Diff ⏳ PENDING
+- [ ] All 7 comparison components diffed via CLI (`curl` + `jq` + `diff`)
+- [ ] 5 components verified as functionally identical (trailing newline only)
+- [ ] 2 components with ESLint disables validated:
+  - [ ] `source.tsx`: 2 `@next/next/no-img-element` comments
+  - [ ] `image.tsx`: 1 `react-hooks/set-state-in-effect` + 1 `@next/next/no-img-element`
+- [ ] Total ESLint disable count verified (expected: 4)
+- [ ] No unauthorized ESLint disables found
+- [ ] Migrated components verified against upstream
+- [ ] ⏸️ **CHECKPOINT 6**: Human approved rigorous verification
 
 ---
 
@@ -996,6 +1132,6 @@ npx shadcn@latest add "https://prompt-kit.com/c/[component].json" --overwrite
 
 ---
 
-*Version: 5.2 — Loader consolidation, Phase 4 comparison added*
+*Version: 5.3 — Phase 7 rigorous diff verification added*
 *Updated: January 19, 2026*
-*Status: Ready for Phase 3 execution*
+*Status: Phase 4 complete, ready for Phase 3 execution*
