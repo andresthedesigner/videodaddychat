@@ -25,8 +25,8 @@ export function Magnetic({
   actionArea = 'self',
   springOptions = SPRING_CONFIG,
 }: MagneticProps) {
-  // Initialize with true for global actionArea
-  const [isHovered, setIsHovered] = useState(actionArea === 'global');
+  // Track mouse hover state for self/parent modes
+  const [isHovered, setIsHovered] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const x = useMotionValue(0);
@@ -34,6 +34,9 @@ export function Magnetic({
 
   const springX = useSpring(x, springOptions);
   const springY = useSpring(y, springOptions);
+
+  // Derive active state: global mode is always active, others depend on hover
+  const isActive = actionArea === 'global' || isHovered;
 
   useEffect(() => {
     const calculateDistance = (e: MouseEvent) => {
@@ -46,7 +49,7 @@ export function Magnetic({
 
         const absoluteDistance = Math.sqrt(distanceX ** 2 + distanceY ** 2);
 
-        if (isHovered && absoluteDistance <= range) {
+        if (isActive && absoluteDistance <= range) {
           const scale = 1 - absoluteDistance / range;
           x.set(distanceX * intensity * scale);
           y.set(distanceY * intensity * scale);
@@ -62,18 +65,7 @@ export function Magnetic({
     return () => {
       document.removeEventListener('mousemove', calculateDistance);
     };
-  }, [ref, isHovered, intensity, range, x, y]);
-
-  // Sync isHovered when actionArea changes to/from 'global'
-  useEffect(() => {
-    if (actionArea === 'global') {
-      setIsHovered(true);
-    } else if (actionArea === 'self') {
-      // Reset to false for 'self' mode (will be controlled by mouse events)
-      setIsHovered(false);
-    }
-    // 'parent' mode will be handled by the parent event listeners below
-  }, [actionArea]);
+  }, [ref, isActive, intensity, range, x, y]);
 
   useEffect(() => {
     if (actionArea === 'parent' && ref.current?.parentElement) {
