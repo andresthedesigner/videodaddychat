@@ -101,6 +101,11 @@ Follow these patterns when creating new code:
 - Force push
 - Commit secrets
 - Modify prod configs without review
+- **Disable lint rules or type checks** — Fix the underlying issue instead
+- **Set ESLint rules to "off" or "warn"** to bypass errors — Always fix at source
+- **Add `// @ts-ignore` or `// @ts-expect-error`** without a linked issue
+- **Add `eslint-disable` comments** without explicit approval and documented reason
+- **Downgrade dependencies** to avoid lint/type errors
 
 ## Security
 

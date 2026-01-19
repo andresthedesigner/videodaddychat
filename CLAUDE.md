@@ -124,6 +124,43 @@ For long sessions, Claude should:
 3. Keep the last 10 messages in full context
 4. Reference `@` files instead of keeping full content in context
 
+## Quality Enforcement
+
+**This project prioritizes strict quality over quick fixes.** When facing lint or type errors:
+
+### Hierarchy of Solutions
+
+1. **Fix the code** — Always the first choice
+2. **Refactor the pattern** — If the code is fundamentally incompatible
+3. **Document exception** — Only with explicit user approval and clear reason
+4. **Never**: Disable rules, add ignore comments, or downgrade deps without approval
+
+### Forbidden Actions
+
+- Setting ESLint rules to `"off"` or `"warn"` to bypass errors
+- Adding `// @ts-ignore` (never acceptable)
+- Adding `eslint-disable` comments without documented reason
+- Suggesting "we can disable this check" as a solution
+- Downgrading packages to avoid type/lint errors
+
+### When You Encounter Errors
+
+```markdown
+✅ DO: "This error is because X. Here's how to fix the code properly..."
+✅ DO: "This pattern violates React 19's ref rules. The correct pattern is..."
+✅ DO: "I'll consult docs/react-19-lint-fixes.md for the recommended fix."
+
+❌ DON'T: "We can disable this rule in eslint.config.mjs..."
+❌ DON'T: "Let me add // @ts-ignore to suppress this..."
+❌ DON'T: "Should I turn off this check?"
+```
+
+### Reference for Fixes
+
+- `docs/react-19-lint-fixes.md` — React 19 / React Compiler patterns
+- `context/conventions.md` — Quality gates and acceptable exceptions
+- Gold standard examples in `AGENTS.md`
+
 ## Debugging Workflow
 
 When debugging issues:
@@ -132,6 +169,7 @@ When debugging issues:
 2. **Check lints**: Run `bun run lint` and `bun run typecheck`
 3. **Verify patterns**: Ensure changes follow gold standard examples
 4. **Test incrementally**: Suggest running tests after each significant change
+5. **Fix at source**: Never suggest disabling checks as a solution
 
 ## Common Gotchas
 

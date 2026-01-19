@@ -341,6 +341,72 @@ describe("ComponentName", () => {
 })
 ```
 
+## Quality Gates
+
+This project prioritizes **strict testing over quick fixes**. All code must pass these gates before merge.
+
+### Verification Commands
+
+```bash
+bun run lint        # Must pass with 0 errors
+bun run typecheck   # Must pass with 0 errors  
+bun run build       # Must complete successfully
+bun run test        # Must pass (when tests exist)
+```
+
+### Strict Quality Rules
+
+| Rule | Enforcement | Rationale |
+|------|-------------|-----------|
+| No `// @ts-ignore` | 🚫 Forbidden | Fix the type error properly |
+| No `// @ts-expect-error` | ⚠️ Requires linked issue | Temporary only with tracking |
+| No `eslint-disable` | ⚠️ Requires documented reason | Must explain why rule doesn't apply |
+| No setting rules to `"off"` | 🚫 Forbidden | Fix the underlying code |
+| No setting rules to `"warn"` | ⚠️ Temporary only | Must have fix plan documented |
+
+### When Facing Lint/Type Errors
+
+**DO:**
+1. Read the error message and understand why it's flagged
+2. Research the correct pattern (check gold standard examples)
+3. Fix the code to comply with the rule
+4. If the rule is wrong for this case, document why in a PR comment
+
+**DON'T:**
+1. Disable the rule globally
+2. Add ignore comments without understanding the issue
+3. Downgrade dependencies to avoid errors
+4. Ask the user "should I disable this check?"
+
+### Acceptable Exceptions
+
+Only these patterns are acceptable with documentation:
+
+```typescript
+// ✅ OK: eslint-disable with clear reason
+// eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally omitting dep for one-time init
+useEffect(() => { init() }, [])
+
+// ✅ OK: @ts-expect-error with linked issue  
+// @ts-expect-error - TODO(#123): Fix type after library upgrade
+const result = legacyFunction()
+
+// ❌ NOT OK: Blanket disable without reason
+// eslint-disable-next-line
+doSomething()
+
+// ❌ NOT OK: ts-ignore (never acceptable)
+// @ts-ignore
+brokenCode()
+```
+
+### Reference Documentation
+
+When fixing lint errors, consult:
+- `docs/react-19-lint-fixes.md` — React 19 / React Compiler patterns
+- Gold standard examples in `AGENTS.md`
+- Official documentation linked in error messages
+
 ## Git Conventions
 
 ### Commit Messages

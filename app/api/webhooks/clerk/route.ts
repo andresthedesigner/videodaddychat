@@ -4,7 +4,14 @@ import { WebhookEvent } from "@clerk/nextjs/server"
 import { ConvexHttpClient } from "convex/browser"
 import { api } from "@/convex/_generated/api"
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+// Lazy initialization to avoid build-time errors when env vars aren't set
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) {
+    throw new Error("NEXT_PUBLIC_CONVEX_URL is not set")
+  }
+  return new ConvexHttpClient(url)
+}
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
@@ -59,6 +66,7 @@ export async function POST(req: Request) {
       .trim()
 
     try {
+      const convex = getConvexClient()
       await convex.mutation(api.users.createOrUpdate, {
         clerkId: id,
         email,
