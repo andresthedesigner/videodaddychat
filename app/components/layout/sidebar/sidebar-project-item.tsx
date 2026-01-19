@@ -4,6 +4,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useBreakpoint } from "@/app/hooks/use-breakpoint"
 import useClickOutside from "@/app/hooks/use-click-outside"
+import { toast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 import { Check, FolderIcon, X } from "@phosphor-icons/react"
 import { useMutation } from "convex/react"
@@ -51,10 +52,15 @@ export function SidebarProjectItem({ project }: SidebarProjectItemProps) {
 
   const handleSave = useCallback(async () => {
     if (editName.trim() !== project.name) {
-      await updateProjectName({
-        projectId: project._id,
-        name: editName.trim(),
-      })
+      try {
+        await updateProjectName({
+          projectId: project._id,
+          name: editName.trim(),
+        })
+      } catch {
+        toast({ title: "Failed to rename project", status: "error" })
+        // Still close edit state to avoid stuck UI
+      }
     }
     setIsEditing(false)
     setIsMenuOpen(false)

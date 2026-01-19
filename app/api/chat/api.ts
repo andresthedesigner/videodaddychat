@@ -5,7 +5,7 @@ import type {
 } from "@/app/types/api.types"
 import { FREE_MODELS_IDS, NON_AUTH_ALLOWED_MODELS } from "@/lib/config"
 import { getProviderForModel } from "@/lib/openproviders/provider-map"
-import { getUserKey, type ProviderWithoutOllama } from "@/lib/user-keys"
+import { hasUserKey, type ProviderWithoutOllama } from "@/lib/user-keys"
 import { fetchQuery, fetchMutation } from "convex/nextjs"
 import { api } from "@/convex/_generated/api"
 
@@ -38,6 +38,11 @@ export async function checkServerSideUsage(
   )
 
   if (!usage.canSend) {
+    // Surface specific error messages (e.g., "User not found", "Anonymous ID required")
+    // before falling back to the generic rate limit message
+    if (usage.error) {
+      throw new Error(usage.error)
+    }
     const modelType = isPro ? "pro model" : "message"
     throw new Error(
       `Daily ${modelType} limit reached (${usage.limit}). Please try again tomorrow or upgrade your plan.`
@@ -75,6 +80,7 @@ export async function validateAndTrackUsage({
   userId,
   model,
   isAuthenticated,
+  token,
 }: ChatApiParams): Promise<null> {
   // Check if user is authenticated
   if (!isAuthenticated) {
@@ -89,13 +95,11 @@ export async function validateAndTrackUsage({
     const provider = getProviderForModel(model)
 
     if (provider !== "ollama") {
-      const userApiKey = await getUserKey(
-        userId,
-        provider as ProviderWithoutOllama
-      )
+      // Check if user has their own API key for this provider
+      const hasKey = await hasUserKey(provider as ProviderWithoutOllama, token)
 
       // If no API key and model is not in free list, deny access
-      if (!userApiKey && !FREE_MODELS_IDS.includes(model)) {
+      if (!hasKey && !FREE_MODELS_IDS.includes(model)) {
         throw new Error(
           `This model requires an API key for ${provider}. Please add your API key in settings or use a free model.`
         )
@@ -103,6 +107,7 @@ export async function validateAndTrackUsage({
     }
   }
 
+  void userId // userId kept for type compatibility but not used here
   return null
 }
 

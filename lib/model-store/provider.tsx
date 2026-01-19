@@ -53,21 +53,22 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
   const [favoriteModels, setFavoriteModels] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // Fetch user keys from Convex (reactive query)
-  const userKeys = useQuery(api.userKeys.getAll)
+  // Fetch provider status from Convex (reactive query)
+  // Uses getProviderStatus which returns only provider identifiers, not encrypted key material
+  const providers = useQuery(api.userKeys.getProviderStatus)
 
-  // Transform user keys array into status object
+  // Transform provider array into status object
   const userKeyStatus = useMemo<UserKeyStatus>(() => {
-    if (!userKeys) return DEFAULT_KEY_STATUS
+    if (!providers) return DEFAULT_KEY_STATUS
 
-    return userKeys.reduce(
-      (acc, key) => {
-        acc[key.provider] = true
+    return providers.reduce(
+      (acc, provider) => {
+        acc[provider] = true
         return acc
       },
       { ...DEFAULT_KEY_STATUS }
     )
-  }, [userKeys])
+  }, [providers])
 
   // Enhance model accessibility based on user's API keys
   // Models are accessible if: already marked accessible (free) OR user has the provider's API key

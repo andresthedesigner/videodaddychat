@@ -18,10 +18,19 @@ function getConvexClient() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Get JWT token for authenticated Convex mutation
+    const token = await getToken({ template: "convex" })
+    if (!token) {
+      return NextResponse.json(
+        { error: "Failed to get auth token" },
+        { status: 401 }
+      )
     }
 
     // Parse the request body
@@ -44,10 +53,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update favorite models in Convex
+    // Update favorite models in Convex with authenticated client
     const convex = getConvexClient()
+    convex.setAuth(token)
     await convex.mutation(api.users.updateFavoriteModels, {
-      clerkId: userId,
       favoriteModels: favorite_models,
     })
 
@@ -66,17 +75,25 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Fetch user's favorite models from Convex
+    // Get JWT token for authenticated Convex query
+    const token = await getToken({ template: "convex" })
+    if (!token) {
+      return NextResponse.json(
+        { error: "Failed to get auth token" },
+        { status: 401 }
+      )
+    }
+
+    // Fetch user's favorite models from Convex with authenticated client
     const convex = getConvexClient()
-    const user = await convex.query(api.users.getByClerkId, {
-      clerkId: userId,
-    })
+    convex.setAuth(token)
+    const user = await convex.query(api.users.getCurrent, {})
 
     return NextResponse.json({
       favorite_models: user?.favoriteModels ?? [],

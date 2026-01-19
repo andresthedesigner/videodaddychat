@@ -47,7 +47,7 @@ export async function GET() {
   }
 }
 
-export async function PUT() {
+export async function PUT(request: Request) {
   try {
     const { userId } = await auth()
 
@@ -58,13 +58,27 @@ export async function PUT() {
     // DEPRECATED: This endpoint no longer persists data.
     // Preferences should be updated via Convex useMutation hook client-side.
     // See: lib/user-preference-store/provider.tsx
-    return NextResponse.json(
-      { 
-        error: "This endpoint is deprecated. Use Convex mutations client-side.",
-        deprecated: true,
-      },
-      { status: 410 } // 410 Gone - indicates the resource is no longer available
+    console.warn(
+      `[DEPRECATED] PUT /api/user-preferences called by user ${userId}. ` +
+      "This endpoint no longer persists data. Use Convex mutations instead."
     )
+
+    // Parse the request body to echo it back (for backward compatibility)
+    let submittedPreferences = {}
+    try {
+      submittedPreferences = await request.json()
+    } catch {
+      // Empty body is fine, use defaults
+    }
+
+    // Return 200 with deprecation flag for backward compatibility
+    // Echo back submitted preferences merged with defaults so clients don't break
+    return NextResponse.json({
+      ...defaultPreferences,
+      ...submittedPreferences,
+      _deprecated: true,
+      _message: "This endpoint is deprecated. Use Convex mutations client-side.",
+    })
   } catch (error) {
     console.error("Error in user-preferences PUT API:", error)
     return NextResponse.json(

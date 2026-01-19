@@ -1,5 +1,5 @@
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
+import { internalQuery, mutation, query } from "./_generated/server"
 
 /**
  * Get all projects for the current user
@@ -51,10 +51,13 @@ export const getById = query({
 })
 
 /**
- * Get a project by ID without auth (for server-side validation)
+ * Get a project by ID without auth (internal use only)
  * Returns project with userId for ownership comparison
+ *
+ * SECURITY: This is an internalQuery - not accessible from clients.
+ * Use getById for client-facing queries with ownership verification.
  */
-export const getByIdWithOwner = query({
+export const getByIdWithOwner = internalQuery({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }) => {
     const project = await ctx.db.get(projectId)

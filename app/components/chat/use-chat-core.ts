@@ -318,19 +318,7 @@ export function useChatCore({
         const trimmedMessages = messages.slice(0, editIndex)
         setMessages([...trimmedMessages, optimisticEditedMessage])
 
-        try {
-          const { writeToIndexedDB } = await import("@/lib/chat-store/persist")
-          await writeToIndexedDB("messages", {
-            id: chatId,
-            messages: trimmedMessages,
-          })
-        } catch {}
-
-        // Delete messages from the edit point in Convex database
-        // This ensures subsequent messages are removed from persistent storage
-        await deleteMessagesFromTimestamp(cutoffTimestamp)
-
-        // Get user validation
+        // Get user validation first (before any permanent deletions)
         const uid = await getOrCreateGuestUserId(user)
         if (!uid) {
           setMessages(originalMessages)
@@ -351,6 +339,20 @@ export function useChatCore({
         }
 
         prevChatIdRef.current = currentChatId
+
+        // Only persist deletions AFTER all validation passes
+        // This prevents data loss if the edit is rejected
+        try {
+          const { writeToIndexedDB } = await import("@/lib/chat-store/persist")
+          await writeToIndexedDB("messages", {
+            id: chatId,
+            messages: trimmedMessages,
+          })
+        } catch {}
+
+        // Delete messages from the edit point in Convex database
+        // This ensures subsequent messages are removed from persistent storage
+        await deleteMessagesFromTimestamp(cutoffTimestamp)
 
         const options = {
           body: {

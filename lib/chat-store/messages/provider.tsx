@@ -152,17 +152,12 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
   const deleteMessagesFromTimestamp = async (timestamp: number) => {
     if (!chatId || chatId.startsWith("optimistic-")) return
 
-    try {
-      await deleteFromTimestampMutation({
-        chatId: chatId as Id<"chats">,
-        timestamp,
-      })
-      // Local state is already trimmed by useChatCore, Convex will reactively update
-    } catch (error) {
-      console.error("Failed to delete messages from timestamp:", error)
-      // Don't show error toast - the edit flow will continue anyway
-      // and Convex's real-time sync will eventually reconcile
-    }
+    await deleteFromTimestampMutation({
+      chatId: chatId as Id<"chats">,
+      timestamp,
+    })
+    // Local state is already trimmed by useChatCore, Convex will reactively update
+    // Errors propagate to submitEdit which handles rollback and user notification
   }
 
   return (

@@ -25,7 +25,8 @@ export async function getMessageUsage(
   anonymousId: string | undefined,
   isAuthenticated: boolean
 ): Promise<UsageResult> {
-  const dailyLimit = isAuthenticated
+  // Default limit based on auth state - used for error fallback
+  const defaultLimit = isAuthenticated
     ? AUTH_DAILY_MESSAGE_LIMIT
     : NON_AUTH_DAILY_MESSAGE_LIMIT
 
@@ -51,10 +52,12 @@ export async function getMessageUsage(
       }
     }
 
+    // Use the limit from Convex to keep dailyLimit consistent with the enforced limit
+    // (handles edge cases like anonymous authenticated users or user not found)
     return {
       dailyCount: regularUsage.count ?? 0,
       dailyProCount: proUsage.count,
-      dailyLimit,
+      dailyLimit: regularUsage.limit,
       remaining: regularUsage.remaining,
       remainingPro: proUsage.remaining,
     }
@@ -64,8 +67,8 @@ export async function getMessageUsage(
     return {
       dailyCount: 0,
       dailyProCount: 0,
-      dailyLimit,
-      remaining: dailyLimit,
+      dailyLimit: defaultLimit,
+      remaining: defaultLimit,
       remainingPro: DAILY_LIMIT_PRO_MODELS,
     }
   }

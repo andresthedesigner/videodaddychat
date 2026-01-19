@@ -39,7 +39,7 @@ export async function GET(
 ) {
   try {
     const { projectId } = await params
-    const { userId } = await auth()
+    const { userId, getToken } = await auth()
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -51,20 +51,28 @@ export async function GET(
       return NextResponse.json({ error: "Invalid project ID" }, { status: 400 })
     }
 
-    // Fetch project from Convex with ownership info
+    // Get JWT token for authenticated Convex query
+    const token = await getToken({ template: "convex" })
+    if (!token) {
+      return NextResponse.json(
+        { error: "Failed to get auth token" },
+        { status: 401 }
+      )
+    }
+
+    // Fetch project from Convex with authenticated query
+    // getById has built-in ownership checks - returns null if user doesn't own the project
     const convex = getConvexClient()
-    const project = await convex.query(api.projects.getByIdWithOwner, {
+    convex.setAuth(token)
+
+    const project = await convex.query(api.projects.getById, {
       projectId: convexId,
     })
 
-    // Return 404 if project doesn't exist
+    // getById returns null if: project doesn't exist OR user doesn't own it
+    // We return 404 for both cases (security best practice - don't reveal existence)
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
-    }
-
-    // Verify ownership
-    if (project.ownerClerkId !== userId) {
-      return NextResponse.json({ error: "Not authorized" }, { status: 403 })
     }
 
     // Return the actual project data

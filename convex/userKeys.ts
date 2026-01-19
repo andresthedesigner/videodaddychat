@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server"
 
 /**
  * Get all API keys for current user (encrypted)
+ * NOTE: Use getProviderStatus instead when you only need to check which providers have keys
  */
 export const getAll = query({
   args: {},
@@ -21,6 +22,34 @@ export const getAll = query({
       .query("userKeys")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect()
+  },
+})
+
+/**
+ * Get provider status (which providers have API keys configured)
+ * Returns only provider identifiers - does NOT expose encrypted key material
+ * Use this for client-side presence checks instead of getAll
+ */
+export const getProviderStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique()
+
+    if (!user) return []
+
+    const keys = await ctx.db
+      .query("userKeys")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect()
+
+    // Return only provider identifiers, not encrypted key material
+    return keys.map((key) => key.provider)
   },
 })
 

@@ -83,6 +83,27 @@ export const saveAttachment = mutation({
       throw new Error("Not authorized to attach files to this chat")
     }
 
+    // Re-check daily upload limit to prevent bypass via pre-fetched upload URLs
+    const startOfDay = new Date()
+    startOfDay.setUTCHours(0, 0, 0, 0)
+
+    const attachments = await ctx.db
+      .query("chatAttachments")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect()
+
+    const todayCount = attachments.filter(
+      (a) => a._creationTime >= startOfDay.getTime()
+    ).length
+
+    if (todayCount >= DAILY_FILE_UPLOAD_LIMIT) {
+      // Clean up the orphaned storage file
+      await ctx.storage.delete(args.storageId)
+      throw new Error(
+        `Daily file upload limit reached (${DAILY_FILE_UPLOAD_LIMIT} files per day)`
+      )
+    }
+
     // Get the public URL
     const fileUrl = await ctx.storage.getUrl(args.storageId)
     if (!fileUrl) throw new Error("Failed to get file URL")

@@ -7,7 +7,16 @@ import { ProjectView } from "@/app/p/[projectId]/project-view"
 import { MessagesProvider } from "@/lib/chat-store/messages/provider"
 import { notFound, redirect } from "next/navigation"
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+// Lazy initialization to avoid build-time errors when env var is not set
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) {
+    throw new Error(
+      "NEXT_PUBLIC_CONVEX_URL is not set. Please configure it in your environment variables."
+    )
+  }
+  return new ConvexHttpClient(url)
+}
 
 type Props = {
   params: Promise<{ projectId: string }>
@@ -30,7 +39,7 @@ function toConvexId(projectId: string): Id<"projects"> | null {
 
 export default async function Page({ params }: Props) {
   const { projectId } = await params
-  const { userId } = await auth()
+  const { userId, getToken } = await auth()
 
   // Redirect to home if not authenticated
   if (!userId) {
@@ -43,25 +52,30 @@ export default async function Page({ params }: Props) {
     notFound()
   }
 
-  // Server-side ownership verification
-  // Query the project with owner info to verify the authenticated user owns it
+  // Server-side ownership verification using authenticated query
+  // getById has built-in ownership checks and returns null if user doesn't own the project
+  let project
   try {
-    const project = await convex.query(api.projects.getByIdWithOwner, {
-      projectId: convexId,
-    })
-
-    // If project doesn't exist, return 404
-    if (!project) {
-      notFound()
-    }
-
-    // Verify ownership: compare project owner's clerkId with authenticated userId
-    if (project.ownerClerkId !== userId) {
-      // User doesn't own this project - redirect to home
+    const token = await getToken({ template: "convex" })
+    if (!token) {
+      // Can't get auth token - redirect to home
       redirect("/")
     }
+
+    const convex = getConvexClient()
+    convex.setAuth(token)
+
+    project = await convex.query(api.projects.getById, {
+      projectId: convexId,
+    })
   } catch {
-    // If query fails (e.g., invalid ID), return 404
+    // If query fails (e.g., invalid ID, network error), return 404
+    notFound()
+  }
+
+  // getById returns null if: project doesn't exist OR user doesn't own it
+  // This is intentional - we don't reveal project existence to non-owners
+  if (!project) {
     notFound()
   }
 

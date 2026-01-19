@@ -98,13 +98,17 @@ export const updateLastActive = mutation({
  */
 export const updateFavoriteModels = mutation({
   args: {
-    clerkId: v.string(),
     favoriteModels: v.array(v.string()),
   },
-  handler: async (ctx, { clerkId, favoriteModels }) => {
+  handler: async (ctx, { favoriteModels }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) {
+      throw new Error("Not authenticated")
+    }
+
     const user = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique()
 
     if (!user) {

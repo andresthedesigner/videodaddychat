@@ -2,7 +2,7 @@
 
 import { api } from "@/convex/_generated/api"
 import { useMutation as useConvexMutation, useQuery as useConvexQuery } from "convex/react"
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react"
 import {
   convertFromApiFormat,
   convertToApiFormat,
@@ -94,25 +94,11 @@ export function UserPreferencesProvider({
   // Convex mutation for updating preferences
   const updatePreferencesMutation = useConvexMutation(api.userPreferences.update)
 
-  // Convert Convex data to UserPreferences format
-  const preferences: UserPreferences = useMemo(() => {
-    if (!isAuthenticated) {
-      return localPreferences
-    }
-
-    if (convexPreferences) {
-      return {
-        layout: (convexPreferences.layout as LayoutType) || defaultPreferences.layout,
-        promptSuggestions: convexPreferences.promptSuggestions ?? defaultPreferences.promptSuggestions,
-        showToolInvocations: convexPreferences.showToolInvocations ?? defaultPreferences.showToolInvocations,
-        showConversationPreviews: convexPreferences.showConversationPreviews ?? defaultPreferences.showConversationPreviews,
-        multiModelEnabled: convexPreferences.multiModelEnabled ?? defaultPreferences.multiModelEnabled,
-        hiddenModels: convexPreferences.hiddenModels ?? defaultPreferences.hiddenModels,
-      }
-    }
-
-    return localPreferences
-  }, [isAuthenticated, convexPreferences, localPreferences])
+  // Source of truth for preferences
+  // - For unauthenticated users: managed locally, persisted to localStorage
+  // - For authenticated users: localPreferences is synced from Convex via effect below
+  //   Using localPreferences directly enables optimistic updates to immediately reflect in UI
+  const preferences = localPreferences
 
   // Sync Convex data to local state for consistent reads
   useEffect(() => {

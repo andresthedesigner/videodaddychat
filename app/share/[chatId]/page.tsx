@@ -8,7 +8,16 @@ import Article from "./article"
 
 export const dynamic = "force-dynamic"
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+// Lazy initialization to avoid build-time errors when env var is not set
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) {
+    throw new Error(
+      "NEXT_PUBLIC_CONVEX_URL is not set. Please configure it in your environment variables."
+    )
+  }
+  return new ConvexHttpClient(url)
+}
 
 /**
  * Helper to safely convert string to Convex ID
@@ -43,6 +52,7 @@ export async function generateMetadata({
 
   if (convexId) {
     try {
+      const convex = getConvexClient()
       const chat = await convex.query(api.chats.getPublicById, {
         chatId: convexId,
       })
@@ -85,10 +95,19 @@ export default async function ShareChat({
   }
 
   // Fetch chat and messages from Convex
-  const [chat, messages] = await Promise.all([
-    convex.query(api.chats.getPublicById, { chatId: convexId }),
-    convex.query(api.messages.getPublicForChat, { chatId: convexId }),
-  ])
+  // Wrap in try/catch because toConvexId only does basic length validation—
+  // invalid ID formats will cause Convex to throw
+  const convex = getConvexClient()
+  let chat, messages
+  try {
+    ;[chat, messages] = await Promise.all([
+      convex.query(api.chats.getPublicById, { chatId: convexId }),
+      convex.query(api.messages.getPublicForChat, { chatId: convexId }),
+    ])
+  } catch {
+    // Invalid Convex ID format or other query error → 404
+    notFound()
+  }
 
   // If chat doesn't exist or is not public, return 404
   if (!chat) {

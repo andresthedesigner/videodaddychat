@@ -11,6 +11,18 @@ export async function GET(req: Request) {
     const { userId: authUserId, getToken } = await auth()
     const isAuthenticated = !!authUserId
 
+    // Validate: must have either authenticated user or anonymousId for tracking
+    if (!isAuthenticated && !anonymousId) {
+      return new Response(
+        JSON.stringify({
+          error: "Missing user identification",
+          code: "MISSING_USER_ID",
+          message: "Either authentication or anonymousId is required for usage tracking",
+        }),
+        { status: 400 }
+      )
+    }
+
     // Get Convex token for authenticated users
     const convexToken = isAuthenticated
       ? (await getToken({ template: "convex" })) ?? undefined

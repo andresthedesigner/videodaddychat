@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { toast } from "@/components/ui/toast"
 import { useMutation } from "convex/react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -36,6 +37,8 @@ export function DialogCreateProject({
       router.push(`/p/${projectId}`)
       setProjectName("")
       setIsOpen(false)
+    } catch {
+      toast({ title: "Failed to create project", status: "error" })
     } finally {
       setIsPending(false)
     }
