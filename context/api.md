@@ -36,10 +36,6 @@ app/api/
 ├── rate-limits/            # Usage tracking
 │   ├── route.ts            # GET - Current usage
 │   └── api.ts              # Business logic
-├── toggle-chat-pin/        # Pin/unpin chats
-│   └── route.ts            # POST - Toggle pin status
-├── update-chat-model/      # Change chat model
-│   └── route.ts            # POST - Update model
 ├── user-keys/              # API key management
 │   └── route.ts            # GET/POST/DELETE - Manage keys
 └── user-preferences/       # User settings

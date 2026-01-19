@@ -221,6 +221,7 @@ export function useChatCore({
       }
 
       handleSubmit(undefined, options)
+      setHasSentFirstMessage(true) // Prevent redirect during chat creation
       setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
       cleanupOptimisticAttachments(optimisticMessage.experimental_attachments)
       cacheAndAddMessage(optimisticMessage)
@@ -466,6 +467,7 @@ export function useChatCore({
           },
           options
         )
+        setHasSentFirstMessage(true) // Prevent redirect during chat creation
         setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
       } catch {
         setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))

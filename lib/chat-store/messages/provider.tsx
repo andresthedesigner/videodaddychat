@@ -43,6 +43,7 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
   )
 
   // Convex mutations
+  const addMessageMutation = useMutation(api.messages.add)
   const addBatchMutation = useMutation(api.messages.addBatch)
   const clearMessagesMutation = useMutation(api.messages.clearForChat)
   const deleteFromTimestampMutation = useMutation(api.messages.deleteFromTimestamp)
@@ -105,13 +106,32 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
     // Optimistic update - add to pending messages
     updateOptimisticMessages((prev) => [...prev, message])
 
-    // Also cache locally
+    // Cache locally (works for both guest and authenticated users)
     const updated = [...serverMessages, ...optimisticMessages, message]
     writeToIndexedDB("messages", { id: chatId, messages: updated })
 
-    // Note: The actual database insert happens via addMessageMutation
-    // when saveAllMessages is called at the end of a chat turn
-  }, [chatId, serverMessages, optimisticMessages, updateOptimisticMessages])
+    // Persist to Convex for authenticated users (valid Convex IDs only)
+    // Guest users will silently skip this (auth required for mutations)
+    if (!chatId.startsWith("optimistic-")) {
+      try {
+        await addMessageMutation({
+          chatId: chatId as Id<"chats">,
+          role: message.role as "user" | "assistant" | "system" | "data",
+          content: message.content,
+          parts: message.parts,
+          attachments: message.experimental_attachments,
+          model: (message as unknown as { model?: string }).model,
+          messageGroupId: (message as unknown as { message_group_id?: string })
+            .message_group_id,
+        })
+      } catch (error) {
+        // Silently fail for guests (no auth) - they only get local storage
+        // For authenticated users, log the error but don't block the UI
+        // The optimistic update keeps the UI responsive
+        console.debug("Message persistence skipped:", error)
+      }
+    }
+  }, [chatId, serverMessages, optimisticMessages, updateOptimisticMessages, addMessageMutation])
 
   const saveAllMessages = useCallback(async (newMessages: MessageAISDK[]) => {
     if (!chatId || chatId.startsWith("optimistic-")) return

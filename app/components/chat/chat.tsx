@@ -13,7 +13,7 @@ import { useUser } from "@/lib/user-store/provider"
 import { cn } from "@/lib/utils"
 import { AnimatePresence, motion } from "motion/react"
 import dynamic from "next/dynamic"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useChatCore } from "./use-chat-core"
 import { useChatOperations } from "./use-chat-operations"
@@ -30,6 +30,7 @@ const DialogAuth = dynamic(
 )
 
 export function Chat() {
+  const router = useRouter()
   const { chatId } = useChatSession()
   const {
     createNewChat,
@@ -205,7 +206,7 @@ export function Chat() {
 
   // Track if we should redirect - use ref to track if redirect was triggered
   const hasRedirectedRef = useRef(false)
-  
+
   // Handle redirect for invalid chatId - only redirect if we're certain the chat doesn't exist
   // and we're not in a transient state during chat creation
   useEffect(() => {
@@ -220,9 +221,9 @@ export function Chat() {
       !hasRedirectedRef.current
     ) {
       hasRedirectedRef.current = true
-      redirect("/")
+      router.replace("/")
     }
-  }, [chatId, isChatsLoading, currentChat, isSubmitting, status, messages.length, hasSentFirstMessage])
+  }, [chatId, isChatsLoading, currentChat, isSubmitting, status, messages.length, hasSentFirstMessage, router])
 
   const showOnboarding = !chatId && messages.length === 0
 

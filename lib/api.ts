@@ -1,6 +1,6 @@
 import type { UserProfile } from "@/lib/user/types"
 import { fetchClient } from "./fetch"
-import { API_ROUTE_CREATE_GUEST, API_ROUTE_UPDATE_CHAT_MODEL } from "./routes"
+import { API_ROUTE_CREATE_GUEST } from "./routes"
 
 /**
  * Creates a guest user record on the server
@@ -63,42 +63,6 @@ export async function checkRateLimits(
     console.error("Error checking rate limits:", err)
     throw err
   }
-}
-
-/**
- * Updates the model for an existing chat
- */
-export async function updateChatModel(chatId: string, model: string) {
-  try {
-    const res = await fetchClient(API_ROUTE_UPDATE_CHAT_MODEL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chatId, model }),
-    })
-    const responseData = await res.json()
-
-    if (!res.ok) {
-      throw new Error(
-        responseData.error ||
-          `Failed to update chat model: ${res.status} ${res.statusText}`
-      )
-    }
-
-    return responseData
-  } catch (error) {
-    console.error("Error updating chat model:", error)
-    throw error
-  }
-}
-
-/**
- * Signs in user with Google OAuth
- * Note: With Clerk, use the Clerk sign-in methods instead
- * @deprecated Use Clerk's useSignIn hook instead
- */
-export async function signInWithGoogle() {
-  console.warn("signInWithGoogle is deprecated. Use Clerk sign-in instead.")
-  throw new Error("Use Clerk for authentication")
 }
 
 /**

@@ -44,9 +44,17 @@ export async function POST(req: Request) {
       userId: clientUserId,
     } = (await req.json()) as ChatRequest
 
-    if (!messages || !chatId) {
+    if (!messages || !chatId || !model) {
       return new Response(
-        JSON.stringify({ error: "Error, missing information" }),
+        JSON.stringify({
+          error: "Missing required fields",
+          code: "INVALID_REQUEST",
+          details: {
+            messages: !messages ? "required" : "ok",
+            chatId: !chatId ? "required" : "ok",
+            model: !model ? "required" : "ok",
+          },
+        }),
         { status: 400 }
       )
     }
