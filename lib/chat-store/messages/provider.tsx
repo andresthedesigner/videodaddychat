@@ -18,6 +18,7 @@ interface MessagesContextType {
   cacheAndAddMessage: (message: MessageAISDK) => Promise<void>
   resetMessages: () => Promise<void>
   deleteMessages: () => Promise<void>
+  deleteMessagesFromTimestamp: (timestamp: number) => Promise<void>
 }
 
 const MessagesContext = createContext<MessagesContextType | null>(null)
@@ -44,6 +45,7 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
   // Convex mutations
   const addBatchMutation = useMutation(api.messages.addBatch)
   const clearMessagesMutation = useMutation(api.messages.clearForChat)
+  const deleteFromTimestampMutation = useMutation(api.messages.deleteFromTimestamp)
 
   // Convert Convex messages to AI SDK format
   const messages: MessageAISDK[] = useMemo(() => {
@@ -147,6 +149,22 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
     setLocalMessages([])
   }
 
+  const deleteMessagesFromTimestamp = async (timestamp: number) => {
+    if (!chatId || chatId.startsWith("optimistic-")) return
+
+    try {
+      await deleteFromTimestampMutation({
+        chatId: chatId as Id<"chats">,
+        timestamp,
+      })
+      // Local state is already trimmed by useChatCore, Convex will reactively update
+    } catch (error) {
+      console.error("Failed to delete messages from timestamp:", error)
+      // Don't show error toast - the edit flow will continue anyway
+      // and Convex's real-time sync will eventually reconcile
+    }
+  }
+
   return (
     <MessagesContext.Provider
       value={{
@@ -158,6 +176,7 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
         cacheAndAddMessage,
         resetMessages,
         deleteMessages,
+        deleteMessagesFromTimestamp,
       }}
     >
       {children}

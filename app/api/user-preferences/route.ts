@@ -1,5 +1,15 @@
 import { auth } from "@clerk/nextjs/server"
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
+
+/**
+ * DEPRECATED: User preferences are now managed via Convex client-side hooks.
+ * 
+ * This endpoint is kept for backward compatibility but clients should use:
+ * - useQuery(api.userPreferences.get) for reading
+ * - useMutation(api.userPreferences.update) for writing
+ * 
+ * See: lib/user-preference-store/provider.tsx
+ */
 
 const defaultPreferences = {
   layout: "fullscreen",
@@ -18,8 +28,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Return default preferences for now
-    // Client-side should use Convex useQuery hook instead
+    // Return default preferences
+    // Actual preferences are fetched via Convex client-side hooks
     return NextResponse.json({
       layout: defaultPreferences.layout,
       prompt_suggestions: defaultPreferences.promptSuggestions,
@@ -37,7 +47,7 @@ export async function GET() {
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PUT() {
   try {
     const { userId } = await auth()
 
@@ -45,46 +55,16 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Parse the request body
-    const body = await request.json()
-    const {
-      layout,
-      prompt_suggestions,
-      show_tool_invocations,
-      show_conversation_previews,
-      multi_model_enabled,
-      hidden_models,
-    } = body
-
-    // Validate the data types
-    if (layout && typeof layout !== "string") {
-      return NextResponse.json(
-        { error: "layout must be a string" },
-        { status: 400 }
-      )
-    }
-
-    if (hidden_models && !Array.isArray(hidden_models)) {
-      return NextResponse.json(
-        { error: "hidden_models must be an array" },
-        { status: 400 }
-      )
-    }
-
-    // Note: Preferences are typically updated client-side via Convex mutations
-    // This endpoint provides compatibility for server-side updates
-    console.log("User preferences update received for user:", userId)
-    console.log("Preferences should be updated via Convex client-side hooks")
-
-    return NextResponse.json({
-      success: true,
-      layout: layout ?? defaultPreferences.layout,
-      prompt_suggestions: prompt_suggestions ?? defaultPreferences.promptSuggestions,
-      show_tool_invocations: show_tool_invocations ?? defaultPreferences.showToolInvocations,
-      show_conversation_previews: show_conversation_previews ?? defaultPreferences.showConversationPreviews,
-      multi_model_enabled: multi_model_enabled ?? defaultPreferences.multiModelEnabled,
-      hidden_models: hidden_models ?? defaultPreferences.hiddenModels,
-    })
+    // DEPRECATED: This endpoint no longer persists data.
+    // Preferences should be updated via Convex useMutation hook client-side.
+    // See: lib/user-preference-store/provider.tsx
+    return NextResponse.json(
+      { 
+        error: "This endpoint is deprecated. Use Convex mutations client-side.",
+        deprecated: true,
+      },
+      { status: 410 } // 410 Gone - indicates the resource is no longer available
+    )
   } catch (error) {
     console.error("Error in user-preferences PUT API:", error)
     return NextResponse.json(

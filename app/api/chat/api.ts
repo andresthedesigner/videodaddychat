@@ -5,12 +5,71 @@ import type {
 } from "@/app/types/api.types"
 import { FREE_MODELS_IDS, NON_AUTH_ALLOWED_MODELS } from "@/lib/config"
 import { getProviderForModel } from "@/lib/openproviders/provider-map"
-import { sanitizeUserInput } from "@/lib/sanitize"
 import { getUserKey, type ProviderWithoutOllama } from "@/lib/user-keys"
+import { fetchQuery, fetchMutation } from "convex/nextjs"
+import { api } from "@/convex/_generated/api"
+
+/**
+ * Check if a model is a "pro" model (requires more stringent limits)
+ */
+export function isProModel(modelId: string): boolean {
+  return !FREE_MODELS_IDS.includes(modelId)
+}
+
+/**
+ * Server-side usage check using Convex with authenticated token
+ * This enforces rate limits before allowing the request to proceed
+ *
+ * @param token - Clerk auth token (undefined for anonymous users)
+ * @param modelId - The model being used
+ * @param anonymousId - Client-generated ID for anonymous users (required if no token)
+ */
+export async function checkServerSideUsage(
+  token: string | undefined,
+  modelId: string,
+  anonymousId?: string
+): Promise<void> {
+  const isPro = isProModel(modelId)
+
+  const usage = await fetchQuery(
+    api.usage.checkUsage,
+    { isProModel: isPro, anonymousId },
+    { token }
+  )
+
+  if (!usage.canSend) {
+    const modelType = isPro ? "pro model" : "message"
+    throw new Error(
+      `Daily ${modelType} limit reached (${usage.limit}). Please try again tomorrow or upgrade your plan.`
+    )
+  }
+}
+
+/**
+ * Server-side usage increment using Convex with authenticated token
+ * This is called after successful validation to track usage
+ *
+ * @param token - Clerk auth token (undefined for anonymous users)
+ * @param modelId - The model being used
+ * @param anonymousId - Client-generated ID for anonymous users (required if no token)
+ */
+export async function incrementServerSideUsage(
+  token: string | undefined,
+  modelId: string,
+  anonymousId?: string
+): Promise<void> {
+  const isPro = isProModel(modelId)
+
+  await fetchMutation(
+    api.usage.incrementUsage,
+    { isProModel: isPro, anonymousId },
+    { token }
+  )
+}
 
 /**
  * Validate user access to model and check for required API keys
- * Note: With Convex, usage tracking is handled client-side via the usage module
+ * Note: Usage rate-limiting is now enforced via checkServerSideUsage
  */
 export async function validateAndTrackUsage({
   userId,
@@ -44,7 +103,6 @@ export async function validateAndTrackUsage({
     }
   }
 
-  // With Convex, usage tracking is handled client-side via mutations
   return null
 }
 
@@ -81,7 +139,7 @@ export async function logUserMessage({
   console.log("User message logging should use Convex messages.add", {
     userId,
     chatId,
-    content: sanitizeUserInput(content).substring(0, 50) + "...",
+    contentLength: content.length,
     hasAttachments: !!attachments?.length,
     model,
     isAuthenticated,

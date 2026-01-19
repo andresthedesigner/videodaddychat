@@ -1,5 +1,5 @@
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
+import { mutation, internalQuery } from "./_generated/server"
 
 /**
  * Submit feedback from authenticated user
@@ -32,8 +32,9 @@ export const submit = mutation({
 
 /**
  * Get all feedback for admin purposes (internal query)
+ * Only callable from other Convex functions, not from clients
  */
-export const list = query({
+export const list = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("feedback").order("desc").collect()

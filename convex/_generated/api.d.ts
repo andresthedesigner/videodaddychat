@@ -12,6 +12,7 @@ import type * as chats from "../chats.js";
 import type * as feedback from "../feedback.js";
 import type * as files from "../files.js";
 import type * as messages from "../messages.js";
+import type * as projects from "../projects.js";
 import type * as usage from "../usage.js";
 import type * as userKeys from "../userKeys.js";
 import type * as userPreferences from "../userPreferences.js";
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   feedback: typeof feedback;
   files: typeof files;
   messages: typeof messages;
+  projects: typeof projects;
   usage: typeof usage;
   userKeys: typeof userKeys;
   userPreferences: typeof userPreferences;

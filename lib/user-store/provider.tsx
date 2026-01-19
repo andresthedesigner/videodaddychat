@@ -3,7 +3,6 @@
 
 import {
   fetchUserProfile,
-  signOutUser,
   subscribeToUserUpdates,
   updateUserProfile,
 } from "@/lib/user-store/api"
@@ -15,7 +14,7 @@ type UserContextType = {
   isLoading: boolean
   updateUser: (updates: Partial<UserProfile>) => Promise<void>
   refreshUser: () => Promise<void>
-  signOut: () => Promise<void>
+  // Note: For sign out, use useClerk().signOut() from @clerk/nextjs
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -56,16 +55,6 @@ export function UserProvider({
     }
   }
 
-  const signOut = async () => {
-    setIsLoading(true)
-    try {
-      const success = await signOutUser()
-      if (success) setUser(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   // Set up realtime subscription for user data changes
   useEffect(() => {
     if (!user?.id) return
@@ -80,9 +69,7 @@ export function UserProvider({
   }, [user?.id])
 
   return (
-    <UserContext.Provider
-      value={{ user, isLoading, updateUser, refreshUser, signOut }}
-    >
+    <UserContext.Provider value={{ user, isLoading, updateUser, refreshUser }}>
       {children}
     </UserContext.Provider>
   )

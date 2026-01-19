@@ -36,6 +36,27 @@ export const getForChat = query({
 })
 
 /**
+ * Get messages for a public chat (no authentication required)
+ * For public share pages
+ */
+export const getPublicForChat = query({
+  args: { chatId: v.id("chats") },
+  handler: async (ctx, { chatId }) => {
+    // Verify chat exists and is public
+    const chat = await ctx.db.get(chatId)
+    if (!chat || !chat.public) return []
+
+    const messages = await ctx.db
+      .query("messages")
+      .withIndex("by_chat", (q) => q.eq("chatId", chatId))
+      .collect()
+
+    // Sort by creation time
+    return messages.sort((a, b) => a._creationTime - b._creationTime)
+  },
+})
+
+/**
  * Get last N messages for a chat (for context)
  */
 export const getLastMessages = query({
@@ -44,6 +65,24 @@ export const getLastMessages = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, { chatId, limit = 2 }) => {
+    // Verify chat access (same checks as getForChat)
+    const chat = await ctx.db.get(chatId)
+    if (!chat) return []
+
+    const identity = await ctx.auth.getUserIdentity()
+
+    // Check ownership or public access
+    if (!chat.public) {
+      if (!identity) return []
+
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .unique()
+
+      if (!user || chat.userId !== user._id) return []
+    }
+
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_chat", (q) => q.eq("chatId", chatId))
@@ -180,6 +219,19 @@ export const deleteFromTimestamp = mutation({
   handler: async (ctx, { chatId, timestamp }) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error("Not authenticated")
+
+    // Verify chat exists and user owns it
+    const chat = await ctx.db.get(chatId)
+    if (!chat) throw new Error("Chat not found")
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique()
+
+    if (!user || chat.userId !== user._id) {
+      throw new Error("Not authorized")
+    }
 
     const messages = await ctx.db
       .query("messages")

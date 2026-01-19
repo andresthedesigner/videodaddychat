@@ -1,6 +1,5 @@
 import { getSources } from "@/app/components/chat/get-sources"
 import { SourcesList } from "@/app/components/chat/sources-list"
-import type { Tables } from "@/app/types/database.types"
 import { Message, MessageContent } from "@/components/prompt-kit/message"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -9,13 +8,24 @@ import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr"
 import Link from "next/link"
 import { Header } from "./header"
 
-type MessageType = Tables<"messages">
+// Message type compatible with Convex schema
+type ConvexMessage = {
+  _id: string
+  _creationTime: number
+  chatId: string
+  role: "user" | "assistant" | "system" | "data"
+  content?: string | null
+  parts?: MessageAISDK["parts"] | null
+  attachments?: unknown[] | null
+  messageGroupId?: string | null
+  model?: string | null
+}
 
 type ArticleProps = {
   date: string
   title: string
   subtitle: string
-  messages: MessageType[]
+  messages: ConvexMessage[]
 }
 
 export default function Article({
@@ -66,9 +76,9 @@ export default function Article({
             const sources = getSources(parts)
 
             return (
-              <div key={message.id}>
+              <div key={message._id}>
                 <Message
-                  key={message.id}
+                  key={message._id}
                   className={cn(
                     "mb-4 flex flex-col gap-0",
                     message.role === "assistant" && "w-full items-start",

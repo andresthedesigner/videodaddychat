@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server"
 import {
   getAllModels,
   getModelsWithAccessFlags,
@@ -7,32 +6,16 @@ import {
 import { NextResponse } from "next/server"
 
 /**
- * Get available AI models
- * Note: With Convex, user-specific model access can be determined client-side
- * by checking user keys via Convex queries
+ * Get available AI models with base access flags.
+ * Free models are marked accessible; paid models are locked by default.
+ * Client-side enhances accessibility based on user's API keys from Convex.
  */
 export async function GET() {
   try {
-    const { userId } = await auth()
-
-    // For unauthenticated users, return models with access flags
-    if (!userId) {
-      const models = await getModelsWithAccessFlags()
-      return new Response(JSON.stringify({ models }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-    }
-
-    // For authenticated users, return all models
-    // User-specific access should be determined client-side based on their API keys
-    const allModels = await getAllModels()
-    const models = allModels.map((model) => ({
-      ...model,
-      accessible: true, // Let client determine actual access based on Convex userKeys
-    }))
+    // Return models with base access flags
+    // Free models (from FREE_MODELS_IDS) and Ollama models are marked accessible
+    // Paid/provider-specific models are locked until client verifies user has API keys
+    const models = await getModelsWithAccessFlags()
 
     return new Response(JSON.stringify({ models }), {
       status: 200,

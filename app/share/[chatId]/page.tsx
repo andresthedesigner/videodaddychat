@@ -1,13 +1,33 @@
 import { APP_DOMAIN } from "@/lib/config"
+import { ConvexHttpClient } from "convex/browser"
+import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import type { Metadata } from "next"
+import { notFound } from "next/navigation"
 import Article from "./article"
 
-export const dynamic = "force-static"
+export const dynamic = "force-dynamic"
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+
+/**
+ * Helper to safely convert string to Convex ID
+ * Returns null if the string is not a valid Convex ID format
+ */
+function toConvexId(chatId: string): Id<"chats"> | null {
+  // Convex IDs are base64-like strings, typically 32 chars
+  // Basic validation to avoid throwing errors on invalid IDs
+  if (!chatId || chatId.length < 10) return null
+  try {
+    return chatId as Id<"chats">
+  } catch {
+    return null
+  }
+}
 
 /**
  * Public chat sharing page
- * Note: With Convex, this page fetches public chat data server-side
- * TODO: Implement Convex HTTP client for server-side data fetching
+ * Fetches public chat data server-side using Convex HTTP client
  */
 
 export async function generateMetadata({
@@ -16,10 +36,24 @@ export async function generateMetadata({
   params: Promise<{ chatId: string }>
 }): Promise<Metadata> {
   const { chatId } = await params
+  const convexId = toConvexId(chatId)
 
-  // TODO: Fetch chat metadata from Convex
-  const title = "Shared Chat"
-  const description = "A conversation in vid0"
+  let title = "Shared Chat"
+  let description = "A conversation in vid0"
+
+  if (convexId) {
+    try {
+      const chat = await convex.query(api.chats.getPublicById, {
+        chatId: convexId,
+      })
+      if (chat?.title) {
+        title = chat.title
+        description = `Read this conversation: ${chat.title}`
+      }
+    } catch {
+      // Fall back to defaults on error
+    }
+  }
 
   return {
     title,
@@ -44,19 +78,28 @@ export default async function ShareChat({
   params: Promise<{ chatId: string }>
 }) {
   const { chatId } = await params
+  const convexId = toConvexId(chatId)
 
-  // TODO: Implement Convex HTTP client for server-side data fetching
-  // For now, return a placeholder that will be enhanced with client-side data
-  
-  // This page needs to be updated to use Convex for fetching public chat data
-  // Current implementation returns a placeholder
-  console.log("Share page for chat:", chatId)
+  if (!convexId) {
+    notFound()
+  }
+
+  // Fetch chat and messages from Convex
+  const [chat, messages] = await Promise.all([
+    convex.query(api.chats.getPublicById, { chatId: convexId }),
+    convex.query(api.messages.getPublicForChat, { chatId: convexId }),
+  ])
+
+  // If chat doesn't exist or is not public, return 404
+  if (!chat) {
+    notFound()
+  }
 
   return (
     <Article
-      messages={[]}
-      date={new Date().toISOString()}
-      title="Shared Chat"
+      messages={messages}
+      date={new Date(chat._creationTime).toISOString()}
+      title={chat.title ?? "Shared Chat"}
       subtitle="A conversation in vid0"
     />
   )

@@ -32,9 +32,10 @@ export async function POST(req: Request) {
     return new Response("Missing svix headers", { status: 400 })
   }
 
-  // Get the body
-  const payload = await req.json()
-  const body = JSON.stringify(payload)
+  // Get the raw body for signature verification
+  // IMPORTANT: Must use req.text() to preserve exact bytes that were signed.
+  // Using req.json() + JSON.stringify() can alter the payload and fail verification.
+  const body = await req.text()
 
   // Create a new Svix instance with your secret
   const wh = new Webhook(WEBHOOK_SECRET)

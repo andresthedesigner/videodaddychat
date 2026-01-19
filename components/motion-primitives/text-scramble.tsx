@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, MotionProps, HTMLMotionProps } from 'motion/react';
 
 export type TextScrambleProps = {
@@ -31,12 +31,12 @@ export function TextScramble({
     Component as string
   ) as React.ComponentType<HTMLMotionProps<'p'>>;
   const [displayText, setDisplayText] = useState(children);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const isAnimatingRef = useRef(false);
   const text = children;
 
-  const scramble = async () => {
-    if (isAnimating) return;
-    setIsAnimating(true);
+  const scramble = useCallback(() => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
 
     const steps = duration / speed;
     let step = 0;
@@ -65,18 +65,26 @@ export function TextScramble({
       if (step > steps) {
         clearInterval(interval);
         setDisplayText(text);
-        setIsAnimating(false);
+        isAnimatingRef.current = false;
         onScrambleComplete?.();
       }
     }, speed * 1000);
-  };
+
+    return interval;
+  }, [duration, speed, text, characterSet, onScrambleComplete]);
 
   useEffect(() => {
     if (!trigger) return;
 
-    scramble();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- scramble changes on every render, but we only want to trigger on `trigger` change
-  }, [trigger]);
+    const interval = scramble();
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+        isAnimatingRef.current = false;
+      }
+    };
+  }, [trigger, scramble]);
 
   return (
     <MotionComponent className={className} {...props}>

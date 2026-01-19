@@ -38,6 +38,9 @@ export const getForCurrentUser = query({
 
 /**
  * Get a single chat by ID
+ * Returns the chat if:
+ * - The chat is public (no auth required), OR
+ * - The user is authenticated and owns the chat
  */
 export const getById = query({
   args: { chatId: v.id("chats") },
@@ -45,7 +48,10 @@ export const getById = query({
     const chat = await ctx.db.get(chatId)
     if (!chat) return null
 
-    // Verify ownership
+    // Allow public chats without authentication
+    if (chat.public) return chat
+
+    // For private chats, verify ownership
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) return null
 
@@ -54,10 +60,7 @@ export const getById = query({
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
       .unique()
 
-    if (!user || chat.userId !== user._id) {
-      // Check if chat is public
-      if (!chat.public) return null
-    }
+    if (!user || chat.userId !== user._id) return null
 
     return chat
   },
@@ -208,6 +211,23 @@ export const makePublic = mutation({
     }
 
     await ctx.db.patch(chatId, { public: true, updatedAt: Date.now() })
+  },
+})
+
+/**
+ * Get a public chat by ID (no authentication required)
+ * For public share pages
+ */
+export const getPublicById = query({
+  args: { chatId: v.id("chats") },
+  handler: async (ctx, { chatId }) => {
+    const chat = await ctx.db.get(chatId)
+    if (!chat) return null
+
+    // Only return if chat is public
+    if (!chat.public) return null
+
+    return chat
   },
 })
 

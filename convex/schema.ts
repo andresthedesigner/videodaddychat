@@ -107,4 +107,11 @@ export default defineSchema({
   })
     .index("by_chat", ["chatId"])
     .index("by_user", ["userId"]),
+
+  // Anonymous usage tracking (for rate limiting unauthenticated users)
+  anonymousUsage: defineTable({
+    anonymousId: v.string(), // Client-generated persistent ID
+    dailyMessageCount: v.number(),
+    dailyReset: v.number(), // Unix timestamp (start of day)
+  }).index("by_anonymous_id", ["anonymousId"]),
 })

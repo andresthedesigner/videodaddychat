@@ -5,9 +5,14 @@ import { NextResponse } from "next/server"
 const SUPPORTED_PROVIDERS = PROVIDERS.map((p) => p.id)
 
 /**
- * Get status of which providers the user has API keys for
- * Note: With Convex, user keys are managed via userKeys queries
- * This endpoint provides backward compatibility
+ * @deprecated This endpoint is deprecated. Use Convex userKeys.getAll query instead.
+ *
+ * Previously returned status of which providers the user has API keys for.
+ * Now returns all false since the client (ModelProvider) uses Convex directly
+ * for reactive user key status via useQuery(api.userKeys.getAll).
+ *
+ * This endpoint is kept only for backward compatibility with any external
+ * consumers that may still be calling it.
  */
 export async function GET() {
   try {
@@ -17,9 +22,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // With Convex, key status should be fetched client-side via userKeys.getAll
+    // DEPRECATED: Client now uses Convex userKeys.getAll for reactive updates
     // Return all providers as false for backward compatibility
-    // Client should use Convex queries for actual status
     const providerStatus = SUPPORTED_PROVIDERS.reduce(
       (acc, provider) => {
         acc[provider] = false
@@ -27,8 +31,6 @@ export async function GET() {
       },
       {} as Record<string, boolean>
     )
-
-    console.log("User key status should be fetched via Convex userKeys.getAll")
 
     return NextResponse.json(providerStatus)
   } catch (err) {

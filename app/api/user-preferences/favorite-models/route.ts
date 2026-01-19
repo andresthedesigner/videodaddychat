@@ -1,11 +1,20 @@
 import { auth } from "@clerk/nextjs/server"
+import { ConvexHttpClient } from "convex/browser"
+import { api } from "@/convex/_generated/api"
 import { NextRequest, NextResponse } from "next/server"
 
 /**
  * Favorite Models API
- * Note: With Convex, favorite models should be managed via Convex user mutations
- * This endpoint provides backward compatibility
+ * Fetches and updates favorite models via Convex
  */
+
+function getConvexClient() {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) {
+    throw new Error("NEXT_PUBLIC_CONVEX_URL is not set")
+  }
+  return new ConvexHttpClient(url)
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,8 +44,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // With Convex, favorite models should be updated via Convex mutations
-    console.log("Favorite models update should use Convex mutation")
+    // Update favorite models in Convex
+    const convex = getConvexClient()
+    await convex.mutation(api.users.updateFavoriteModels, {
+      clerkId: userId,
+      favoriteModels: favorite_models,
+    })
 
     return NextResponse.json({
       success: true,
@@ -59,11 +72,14 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // With Convex, favorite models should be fetched via Convex queries
-    console.log("Favorite models should be fetched via Convex query")
+    // Fetch user's favorite models from Convex
+    const convex = getConvexClient()
+    const user = await convex.query(api.users.getByClerkId, {
+      clerkId: userId,
+    })
 
     return NextResponse.json({
-      favorite_models: [],
+      favorite_models: user?.favoriteModels ?? [],
     })
   } catch (error) {
     console.error("Error in favorite-models GET API:", error)

@@ -9,7 +9,6 @@
  * user operations should use Convex mutations/queries.
  */
 
-import { toast } from "@/components/ui/toast"
 import type { UserProfile } from "@/lib/user/types"
 
 /**
@@ -38,20 +37,6 @@ export async function updateUserProfile(
 ): Promise<boolean> {
   // With Convex, user updates are handled via Convex mutations
   console.warn("updateUserProfile is deprecated, use Convex mutations instead")
-  return false
-}
-
-/**
- * Sign out the current user
- * Use the Clerk hook instead: const { signOut } = useClerk()
- */
-export async function signOutUser(): Promise<boolean> {
-  // Note: This should be called from a component using useClerk().signOut()
-  toast({
-    title: "Use the Clerk signOut method instead",
-    description: "This function is deprecated",
-    status: "info",
-  })
   return false
 }
 

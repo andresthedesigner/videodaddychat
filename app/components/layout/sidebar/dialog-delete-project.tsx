@@ -1,5 +1,7 @@
 "use client"
 
+import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -9,15 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { fetchClient } from "@/lib/fetch"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation } from "convex/react"
 import { usePathname, useRouter } from "next/navigation"
+import { useState } from "react"
 
 type Project = {
-  id: string
+  _id: Id<"projects">
   name: string
-  user_id: string
-  created_at: string
 }
 
 type DialogDeleteProjectProps = {
@@ -31,37 +31,24 @@ export function DialogDeleteProject({
   setIsOpen,
   project,
 }: DialogDeleteProjectProps) {
-  const queryClient = useQueryClient()
+  const [isPending, setIsPending] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
+  const deleteProject = useMutation(api.projects.remove)
 
-  const deleteProjectMutation = useMutation({
-    mutationFn: async (projectId: string) => {
-      const response = await fetchClient(`/api/projects/${projectId}`, {
-        method: "DELETE",
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to delete project")
-      }
-
-      return response.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] })
-      queryClient.invalidateQueries({ queryKey: ["chats"] })
+  const handleConfirmDelete = async () => {
+    setIsPending(true)
+    try {
+      await deleteProject({ projectId: project._id })
       setIsOpen(false)
 
       // If we're currently viewing this project, redirect to home
-      if (pathname.startsWith(`/p/${project.id}`)) {
+      if (pathname.startsWith(`/p/${project._id}`)) {
         router.push("/")
       }
-    },
-  })
-
-  const handleConfirmDelete = () => {
-    deleteProjectMutation.mutate(project.id)
+    } finally {
+      setIsPending(false)
+    }
   }
 
   return (
@@ -80,7 +67,7 @@ export function DialogDeleteProject({
             type="button"
             variant="outline"
             onClick={() => setIsOpen(false)}
-            disabled={deleteProjectMutation.isPending}
+            disabled={isPending}
           >
             Cancel
           </Button>
@@ -88,9 +75,9 @@ export function DialogDeleteProject({
             type="button"
             variant="destructive"
             onClick={handleConfirmDelete}
-            disabled={deleteProjectMutation.isPending}
+            disabled={isPending}
           >
-            {deleteProjectMutation.isPending ? "Deleting..." : "Delete Project"}
+            {isPending ? "Deleting..." : "Delete Project"}
           </Button>
         </DialogFooter>
       </DialogContent>

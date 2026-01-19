@@ -44,7 +44,7 @@ export function Chat() {
     [chatId, getChatById]
   )
 
-  const { messages: initialMessages, cacheAndAddMessage } = useMessages()
+  const { messages: initialMessages, cacheAndAddMessage, deleteMessagesFromTimestamp } = useMessages()
   const { user } = useUser()
   const { preferences } = useUserPreferences()
   const { draftValue, clearDraft } = useChatDraft(chatId)
@@ -133,6 +133,7 @@ export function Chat() {
     selectedModel,
     clearDraft,
     bumpChat,
+    deleteMessagesFromTimestamp,
   })
 
   // Memoize the conversation props to prevent unnecessary rerenders

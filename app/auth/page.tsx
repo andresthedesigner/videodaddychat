@@ -12,7 +12,6 @@ export default function AuthPage() {
         }}
         routing="path"
         path="/auth"
-        signUpUrl="/auth"
         fallbackRedirectUrl="/"
       />
     </div>

@@ -1,10 +1,12 @@
+import { auth } from "@clerk/nextjs/server"
 import { SYSTEM_PROMPT_DEFAULT } from "@/lib/config"
 import { getAllModels } from "@/lib/models"
 import { getProviderForModel } from "@/lib/openproviders/provider-map"
 import type { ProviderWithoutOllama } from "@/lib/user-keys"
 import { Message as MessageAISDK, streamText, ToolSet } from "ai"
 import {
-  incrementMessageCount,
+  checkServerSideUsage,
+  incrementServerSideUsage,
   logUserMessage,
   storeAssistantMessage,
   validateAndTrackUsage,
@@ -16,37 +18,52 @@ export const maxDuration = 60
 type ChatRequest = {
   messages: MessageAISDK[]
   chatId: string
-  userId: string
   model: string
-  isAuthenticated: boolean
   systemPrompt: string
   enableSearch: boolean
   message_group_id?: string
-  editCutoffTimestamp?: string
+  userId?: string // Client-provided userId (for anonymous users)
 }
 
 export async function POST(req: Request) {
   try {
+    // Server-side authentication - derive userId from Clerk session
+    const { userId: authUserId, getToken } = await auth()
+    const isAuthenticated = !!authUserId
+
+    // Get Convex token for authenticated usage tracking
+    const convexToken = isAuthenticated
+      ? (await getToken({ template: "convex" })) ?? undefined
+      : undefined
+
     const {
       messages,
       chatId,
-      userId,
       model,
-      isAuthenticated,
       systemPrompt,
       enableSearch,
       message_group_id,
-      // editCutoffTimestamp is extracted but not yet used - planned for message edit feature
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      editCutoffTimestamp,
+      userId: clientUserId,
     } = (await req.json()) as ChatRequest
 
-    if (!messages || !chatId || !userId) {
+    // Use authenticated userId, or client-provided ID for anonymous users
+    // The client-provided ID should be a stable guest ID from localStorage
+    const userId = authUserId || clientUserId || `anon-${crypto.randomUUID()}`
+
+    // For anonymous users, extract the anonymous ID for rate limiting
+    // This should match the format from getOrCreateGuestUserId: "guest_<uuid>"
+    const anonymousId = !isAuthenticated ? clientUserId : undefined
+
+    if (!messages || !chatId) {
       return new Response(
         JSON.stringify({ error: "Error, missing information" }),
         { status: 400 }
       )
     }
+
+    // Server-side usage check - enforces rate limits before processing
+    // For anonymous users, pass the anonymousId for tracking
+    await checkServerSideUsage(convexToken, model, anonymousId)
 
     await validateAndTrackUsage({
       userId,
@@ -54,8 +71,8 @@ export async function POST(req: Request) {
       isAuthenticated,
     })
 
-    // Increment message count (handled client-side with Convex)
-    await incrementMessageCount({ userId })
+    // Increment usage count server-side with Convex
+    await incrementServerSideUsage(convexToken, model, anonymousId)
 
     const userMessage = messages[messages.length - 1]
 

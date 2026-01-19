@@ -92,3 +92,26 @@ export const updateLastActive = mutation({
     }
   },
 })
+
+/**
+ * Update user's favorite models
+ */
+export const updateFavoriteModels = mutation({
+  args: {
+    clerkId: v.string(),
+    favoriteModels: v.array(v.string()),
+  },
+  handler: async (ctx, { clerkId, favoriteModels }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+      .unique()
+
+    if (!user) {
+      throw new Error("User not found")
+    }
+
+    await ctx.db.patch(user._id, { favoriteModels })
+    return favoriteModels
+  },
+})

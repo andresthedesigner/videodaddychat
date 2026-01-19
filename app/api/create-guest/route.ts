@@ -18,6 +18,22 @@ export async function POST(request: Request) {
       })
     }
 
+    // Input validation: ensure userId is a string with safe characters
+    if (typeof userId !== "string") {
+      return new Response(JSON.stringify({ error: "Invalid userId" }), {
+        status: 400,
+      })
+    }
+
+    const trimmedUserId = userId.trim()
+    const userIdPattern = /^[a-zA-Z0-9_\-:@.]{1,128}$/
+
+    if (!trimmedUserId || !userIdPattern.test(trimmedUserId)) {
+      return new Response(JSON.stringify({ error: "Invalid userId format" }), {
+        status: 400,
+      })
+    }
+
     // With Clerk + Convex, guest users are managed differently
     // Return a mock user for backward compatibility
     console.log("Guest user creation handled via local storage or Clerk")
@@ -25,7 +41,7 @@ export async function POST(request: Request) {
     return new Response(
       JSON.stringify({ 
         user: { 
-          id: userId, 
+          id: trimmedUserId, 
           anonymous: true,
           message_count: 0,
           daily_message_count: 0,

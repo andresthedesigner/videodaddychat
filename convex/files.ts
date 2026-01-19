@@ -1,14 +1,44 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 
+const DAILY_FILE_UPLOAD_LIMIT = 5
+
 /**
  * Generate an upload URL for file storage
+ * Enforces daily upload limit server-side
  */
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error("Not authenticated")
+
+    // Get user from database
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique()
+
+    if (!user) throw new Error("User not found")
+
+    // Enforce daily upload limit server-side
+    const startOfDay = new Date()
+    startOfDay.setUTCHours(0, 0, 0, 0)
+
+    const attachments = await ctx.db
+      .query("chatAttachments")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect()
+
+    const todayCount = attachments.filter(
+      (a) => a._creationTime >= startOfDay.getTime()
+    ).length
+
+    if (todayCount >= DAILY_FILE_UPLOAD_LIMIT) {
+      throw new Error(
+        `Daily file upload limit reached (${DAILY_FILE_UPLOAD_LIMIT} files per day)`
+      )
+    }
 
     return await ctx.storage.generateUploadUrl()
   },
@@ -45,6 +75,13 @@ export const saveAttachment = mutation({
       .unique()
 
     if (!user) throw new Error("User not found")
+
+    // Verify chat ownership before attaching file
+    const chat = await ctx.db.get(args.chatId)
+    if (!chat) throw new Error("Chat not found")
+    if (chat.userId !== user._id) {
+      throw new Error("Not authorized to attach files to this chat")
+    }
 
     // Get the public URL
     const fileUrl = await ctx.storage.getUrl(args.storageId)
@@ -91,11 +128,10 @@ export const checkUploadLimit = query({
       (a) => a._creationTime >= startOfDay.getTime()
     ).length
 
-    const limit = 5 // DAILY_FILE_UPLOAD_LIMIT
     return {
       count: todayCount,
-      limit,
-      canUpload: todayCount < limit,
+      limit: DAILY_FILE_UPLOAD_LIMIT,
+      canUpload: todayCount < DAILY_FILE_UPLOAD_LIMIT,
     }
   },
 })

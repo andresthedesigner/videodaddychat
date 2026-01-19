@@ -16,6 +16,7 @@ import {
 } from "@/components/prompt-kit/message"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/toast"
+import { isConvexId } from "@/lib/chat-store/types"
 import { cn } from "@/lib/utils"
 import { Message as MessageType } from "@ai-sdk/react"
 import {
@@ -70,11 +71,12 @@ export function MessageUser({
 
   const handleSave = async () => {
     if (!editInput.trim()) return
-    const UUIDLength = 36
 
     try {
-      if (id && id.length !== UUIDLength && !id.startsWith("optimistic-")) {
-        // Message IDs failed to sync
+      // Valid IDs: optimistic (pending sync) or Convex IDs (synced)
+      const isValidId = id.startsWith("optimistic-") || isConvexId(id)
+      if (id && !isValidId) {
+        // Message ID is in an unexpected format — likely failed to sync
         toast({
           title: "Oops, something went wrong",
           description: "Please refresh your browser and try again.",
