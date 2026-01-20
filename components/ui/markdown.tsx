@@ -1,3 +1,20 @@
+/**
+ * @component Markdown
+ * @source prompt-kit
+ * @upstream https://prompt-kit.com/docs/markdown
+ * @customized true
+ * @customizations
+ *   - Uses `LinkMarkdown` component for custom link handling with previews
+ *   - Integrates `ButtonCopy` for one-click code copying in code blocks
+ *   - Adds `CodeBlockGroup` header with language label display
+ *   - Uses `marked.lexer()` for block-level parsing optimization
+ *   - Per-block memoization via `MemoizedMarkdownBlock` for better performance
+ *   - Upstream has basic code/link handling; vid0 has enhanced UX features
+ * @upgradeNotes
+ *   - Preserve LinkMarkdown, ButtonCopy, and CodeBlockGroup integrations
+ *   - Maintain per-block memoization pattern for performance
+ *   - Verify INITIAL_COMPONENTS customizations are not overwritten
+ */
 import { LinkMarkdown } from "@/app/components/chat/link-markdown"
 import { cn } from "@/lib/utils"
 import { marked } from "marked"

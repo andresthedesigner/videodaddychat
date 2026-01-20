@@ -1,3 +1,18 @@
+/**
+ * @component ThinkingBar
+ * @source prompt-kit
+ * @upstream https://prompt-kit.com/docs/thinking-bar
+ * @customized true
+ * @customizations
+ *   - Adds `onClick` prop for navigation/expansion functionality
+ *   - Shows ChevronRight icon on hover when onClick is provided
+ *   - Upstream only has `onStop` prop; vid0 adds clickable thinking text
+ *   - Uses local TextShimmer component (also customized)
+ * @upgradeNotes
+ *   - Preserve onClick prop and ChevronRight icon rendering
+ *   - Maintain conditional button vs span rendering based on onClick
+ *   - Verify TextShimmer import path remains correct
+ */
 "use client"
 
 import { TextShimmer } from "@/components/ui/text-shimmer"

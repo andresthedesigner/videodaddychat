@@ -1,3 +1,22 @@
+/**
+ * @component Loader
+ * @source prompt-kit (partial)
+ * @upstream https://prompt-kit.com/docs/loader
+ * @customized true
+ * @customizations
+ *   - Consolidates 13 loader variants (upstream has only 1: 3-dot bounce)
+ *   - 12 CSS-based variants: circular, classic, pulse, pulse-dot, dots, typing,
+ *     wave, bars, terminal, text-blink, text-shimmer, loading-dots
+ *   - 1 Framer Motion variant: `chat` (the original prompt-kit loader)
+ *   - Adds size prop (sm/md/lg) for all variants
+ *   - Adds text prop for text-based variants
+ *   - vid0 consolidated multiple loader components into single unified API
+ * @upgradeNotes
+ *   - Upstream only provides ChatLoader (3-dot bounce with Framer Motion)
+ *   - Do NOT replace with upstream; vid0 version is significantly more feature-rich
+ *   - If upstream adds new variants, consider adding them to vid0's variant union
+ *   - Preserve all 13 variants and the unified Loader API
+ */
 "use client"
 
 import { cn } from "@/lib/utils"

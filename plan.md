@@ -218,4 +218,33 @@ bun run build        # Production build
 
 ---
 
+## Future Research & Open Questions
+
+### JSX Preview Component
+
+- **Description**: prompt-kit has a `jsx-preview.tsx` component that renders JSX strings as React components dynamically
+- **Potential use cases for vid0**:
+  - AI-generated YouTube thumbnail previews (render mock thumbnails from LLM output)
+  - Interactive script visualization (render formatted scripts with highlights)
+  - Generative UI features (dynamic component rendering from AI responses)
+- **Considerations**:
+  - Security: Requires careful sanitization of JSX strings before rendering
+  - Bundle size: Adds ~50KB for JSX parsing/rendering runtime
+  - Performance: Needs debouncing for streaming responses to avoid excessive re-renders
+- **Status**: Evaluate when implementing thumbnail generation or generative UI features
+- **Reference**: https://prompt-kit.com/docs and `docs/prompt-kit-analysis.md`
+
+### LLM Context Files
+
+- **Description**: prompt-kit provides `llms.txt` and `llms-full.txt` for AI-assisted development
+- **Purpose**: Gives AI assistants (Claude, Copilot, etc.) context about component APIs and usage patterns
+- **Potential for vid0**:
+  - Create `/public/llms.txt` documenting vid0's customized prompt-kit components
+  - Include component customizations, upgrade notes, and usage examples
+  - Help AI assistants understand vid0-specific patterns vs upstream prompt-kit
+- **Status**: Consider when AI-assisted development becomes a priority
+- **Reference**: https://prompt-kit.com/llms.txt
+
+---
+
 *Update this file as work progresses. AI agents should check and update task status.*

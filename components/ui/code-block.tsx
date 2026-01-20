@@ -1,3 +1,18 @@
+/**
+ * @component CodeBlock
+ * @source prompt-kit
+ * @upstream https://prompt-kit.com/docs/code-block
+ * @customized true
+ * @customizations
+ *   - Uses `useTheme()` hook for automatic dark/light mode switching
+ *   - Upstream requires manual `theme` prop; vid0 auto-detects from app theme
+ *   - Adds `[&>pre]:!bg-background` for consistent backgrounds across themes
+ *   - SSR fallback renders plain code block before hydration
+ * @upgradeNotes
+ *   - Check if upstream still uses static theme prop vs auto-detection
+ *   - Preserve useTheme() integration and SSR fallback pattern
+ *   - Verify background styling classes are maintained
+ */
 "use client"
 
 import { cn } from "@/lib/utils"

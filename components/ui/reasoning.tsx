@@ -1,3 +1,19 @@
+/**
+ * @component Reasoning
+ * @source prompt-kit
+ * @upstream https://prompt-kit.com/docs/reasoning
+ * @customized true
+ * @customizations
+ *   - Uses React 19 render-sync pattern instead of useEffect for streaming state
+ *   - Upstream: `useEffect(() => { if (isStreaming...) }, [isStreaming])`
+ *   - vid0: Syncs state during render to avoid extra render cycle
+ *   - This follows React 19 best practices for derived state patterns
+ *   - vid0 also has a simpler version at `app/components/chat/reasoning.tsx`
+ * @upgradeNotes
+ *   - Do NOT revert to useEffect pattern for isStreaming state sync
+ *   - Preserve the `if (isStreaming !== prevIsStreaming)` render-sync block
+ *   - This pattern reduces render cycles and effect cleanup overhead
+ */
 "use client"
 
 import { cn } from "@/lib/utils"

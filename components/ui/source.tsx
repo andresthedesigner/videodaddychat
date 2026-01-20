@@ -1,3 +1,18 @@
+/**
+ * @component Source
+ * @source prompt-kit
+ * @upstream https://prompt-kit.com/docs/source
+ * @customized true
+ * @customizations
+ *   - ESLint disables for `@next/next/no-img-element` are intentional
+ *   - Uses Google Favicon API for dynamic external favicons
+ *   - next/image optimization not beneficial for external dynamic URLs
+ *   - Each ESLint disable has inline comment explaining the reason
+ * @upgradeNotes
+ *   - Preserve ESLint disable comments with explanations
+ *   - Do NOT convert img tags to next/image (dynamic external URLs)
+ *   - Verify Google Favicon API URL format remains current
+ */
 "use client"
 
 import {
