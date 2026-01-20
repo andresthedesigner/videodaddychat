@@ -40,15 +40,9 @@ type PromptInputContextType = {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>
 }
 
-const PromptInputContext = createContext<PromptInputContextType>({
-  isLoading: false,
-  value: "",
-  setValue: () => {},
-  maxHeight: 240,
-  onSubmit: undefined,
-  disabled: false,
-  textareaRef: { current: null },
-})
+const PromptInputContext = createContext<PromptInputContextType | undefined>(
+  undefined
+)
 
 function usePromptInput() {
   const context = useContext(PromptInputContext)
@@ -64,6 +58,7 @@ type PromptInputProps = {
   onValueChange?: (value: string) => void
   maxHeight?: number | string
   onSubmit?: () => void
+  disabled?: boolean
   children: React.ReactNode
   className?: string
 }
@@ -75,6 +70,7 @@ function PromptInput({
   value,
   onValueChange,
   onSubmit,
+  disabled = false,
   children,
 }: PromptInputProps) {
   const [internalValue, setInternalValue] = useState(value || "")
@@ -93,6 +89,7 @@ function PromptInput({
         setValue: onValueChange ?? handleChange,
         maxHeight,
         onSubmit,
+        disabled,
         textareaRef,
       }}
     >
