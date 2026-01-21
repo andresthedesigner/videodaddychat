@@ -15,7 +15,8 @@ interface MessagesContextType {
   setMessages: React.Dispatch<React.SetStateAction<MessageAISDK[]>>
   refresh: () => Promise<void>
   saveAllMessages: (messages: MessageAISDK[]) => Promise<void>
-  cacheAndAddMessage: (message: MessageAISDK) => Promise<void>
+  /** Cache message locally and persist to Convex. Pass overrideChatId to handle stale closures during chat creation. */
+  cacheAndAddMessage: (message: MessageAISDK, overrideChatId?: string) => Promise<void>
   resetMessages: () => Promise<void>
   deleteMessages: () => Promise<void>
   deleteMessagesFromTimestamp: (timestamp: number) => Promise<void>
@@ -100,22 +101,27 @@ export function MessagesProvider({ children }: { children: React.ReactNode }) {
     // With Convex, data is real-time, so refresh is a no-op
   }, [])
 
-  const cacheAndAddMessage = useCallback(async (message: MessageAISDK) => {
-    if (!chatId) return
+  const cacheAndAddMessage = useCallback(async (message: MessageAISDK, overrideChatId?: string) => {
+    // Use overrideChatId to handle stale closures during chat creation flow
+    const effectiveChatId = overrideChatId || chatId
+    if (!effectiveChatId) return
 
-    // Optimistic update - add to pending messages
-    updateOptimisticMessages((prev) => [...prev, message])
+    // Optimistic update - add to pending messages (use effectiveChatId for map key)
+    if (effectiveChatId === chatId) {
+      // Only update optimistic state if we're in the same chat context
+      updateOptimisticMessages((prev) => [...prev, message])
+    }
 
     // Cache locally (works for both guest and authenticated users)
     const updated = [...serverMessages, ...optimisticMessages, message]
-    writeToIndexedDB("messages", { id: chatId, messages: updated })
+    writeToIndexedDB("messages", { id: effectiveChatId, messages: updated })
 
     // Persist to Convex for authenticated users (valid Convex IDs only)
     // Guest users will silently skip this (auth required for mutations)
-    if (!chatId.startsWith("optimistic-")) {
+    if (!effectiveChatId.startsWith("optimistic-")) {
       try {
         await addMessageMutation({
-          chatId: chatId as Id<"chats">,
+          chatId: effectiveChatId as Id<"chats">,
           role: message.role as "user" | "assistant" | "system" | "data",
           content: message.content,
           parts: message.parts,

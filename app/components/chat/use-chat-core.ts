@@ -15,7 +15,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 type UseChatCoreProps = {
   initialMessages: Message[]
   draftValue: string
-  cacheAndAddMessage: (message: Message) => void
+  /** Cache message locally and persist to Convex. Pass overrideChatId to handle stale closures during chat creation. */
+  cacheAndAddMessage: (message: Message, overrideChatId?: string) => void
   chatId: string | null
   user: UserProfile | null
   files: File[]
@@ -105,15 +106,19 @@ export function useChatCore({
     initialMessages,
     initialInput: draftValue,
     onFinish: async (m) => {
-      cacheAndAddMessage(m)
-      try {
-        const effectiveChatId =
-          chatId ||
-          prevChatIdRef.current ||
-          (typeof window !== "undefined"
-            ? localStorage.getItem("guestChatId")
-            : null)
+      // Use effectiveChatId to handle stale closures during chat creation
+      const effectiveChatId =
+        chatId ||
+        prevChatIdRef.current ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem("guestChatId")
+          : null)
 
+      if (effectiveChatId) {
+        cacheAndAddMessage(m, effectiveChatId)
+      }
+
+      try {
         if (!effectiveChatId) return
         await syncRecentMessages(effectiveChatId, setMessages, 2)
       } catch (error) {
@@ -226,7 +231,8 @@ export function useChatCore({
       setHasSentFirstMessage(true) // Prevent redirect during chat creation
       setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
       cleanupOptimisticAttachments(optimisticMessage.experimental_attachments)
-      cacheAndAddMessage(optimisticMessage)
+      // Pass currentChatId explicitly to handle stale closures during chat creation
+      cacheAndAddMessage(optimisticMessage, currentChatId)
       clearDraft()
 
       if (messages.length > 0) {
@@ -471,6 +477,8 @@ export function useChatCore({
         )
         setHasSentFirstMessage(true) // Prevent redirect during chat creation
         setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
+        // Persist user message with explicit chatId to handle stale closures
+        cacheAndAddMessage(optimisticMessage, currentChatId)
       } catch {
         setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
         toast({ title: "Failed to send suggestion", status: "error" })
@@ -487,6 +495,7 @@ export function useChatCore({
       isAuthenticated,
       setMessages,
       setIsSubmitting,
+      cacheAndAddMessage,
     ]
   )
 
