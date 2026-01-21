@@ -1,6 +1,26 @@
+/**
+ * @component Loader
+ * @source prompt-kit (partial)
+ * @upstream https://prompt-kit.com/docs/loader
+ * @customized true
+ * @customizations
+ *   - Consolidates 13 loader variants (upstream has only 1: 3-dot bounce)
+ *   - 12 CSS-based variants: circular, classic, pulse, pulse-dot, dots, typing,
+ *     wave, bars, terminal, text-blink, text-shimmer, loading-dots
+ *   - 1 Framer Motion variant: `chat` (the original prompt-kit loader)
+ *   - Adds size prop (sm/md/lg) for all variants
+ *   - Adds text prop for text-based variants
+ *   - vid0 consolidated multiple loader components into single unified API
+ * @upgradeNotes
+ *   - Upstream only provides ChatLoader (3-dot bounce with Framer Motion)
+ *   - Do NOT replace with upstream; vid0 version is significantly more feature-rich
+ *   - If upstream adds new variants, consider adding them to vid0's variant union
+ *   - Preserve all 13 variants and the unified Loader API
+ */
 "use client"
 
 import { cn } from "@/lib/utils"
+import { motion } from "framer-motion"
 import React from "react"
 
 export interface LoaderProps {
@@ -17,6 +37,7 @@ export interface LoaderProps {
     | "text-blink"
     | "text-shimmer"
     | "loading-dots"
+    | "chat"
   size?: "sm" | "md" | "lg"
   text?: string
   className?: string
@@ -460,6 +481,37 @@ export function TextDotsLoader({
   )
 }
 
+export function ChatLoader({ className }: { className?: string }) {
+  const DOT_SIZE = "size-2"
+  const DOT_COLOR = "bg-primary/60"
+
+  const ANIMATION = {
+    y: ["0%", "-60%", "0%"],
+    opacity: [1, 0.7, 1],
+  }
+
+  const TRANSITION = {
+    duration: 0.6,
+    ease: "easeInOut" as const,
+    repeat: Infinity,
+    repeatType: "loop" as const,
+  }
+
+  return (
+    <div className={cn("flex items-center justify-center gap-1", className)}>
+      {[0, 0.1, 0.2].map((delay, i) => (
+        <motion.div
+          key={i}
+          className={`${DOT_SIZE} ${DOT_COLOR} rounded-full`}
+          animate={ANIMATION}
+          transition={{ ...TRANSITION, delay }}
+        />
+      ))}
+      <span className="sr-only">Loading</span>
+    </div>
+  )
+}
+
 function Loader({
   variant = "circular",
   size = "md",
@@ -491,6 +543,8 @@ function Loader({
       return <TextShimmerLoader text={text} size={size} className={className} />
     case "loading-dots":
       return <TextDotsLoader text={text} size={size} className={className} />
+    case "chat":
+      return <ChatLoader className={className} />
     default:
       return <CircularLoader size={size} className={className} />
   }

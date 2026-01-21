@@ -3,7 +3,7 @@ import {
   MessageAction,
   MessageActions,
   MessageContent,
-} from "@/components/prompt-kit/message"
+} from "@/components/ui/message"
 import { useUserPreferences } from "@/lib/user-preference-store/provider"
 import { cn } from "@/lib/utils"
 import type { Message as MessageAISDK } from "@ai-sdk/react"

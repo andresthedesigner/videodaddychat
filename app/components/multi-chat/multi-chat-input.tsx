@@ -6,7 +6,7 @@ import {
   PromptInputAction,
   PromptInputActions,
   PromptInputTextarea,
-} from "@/components/prompt-kit/prompt-input"
+} from "@/components/ui/prompt-input"
 import { Button } from "@/components/ui/button"
 import { ArrowUp, Stop } from "@phosphor-icons/react"
 import React, { useCallback } from "react"

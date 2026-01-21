@@ -1,6 +1,22 @@
+/**
+ * @component CodeBlock
+ * @source prompt-kit
+ * @upstream https://prompt-kit.com/docs/code-block
+ * @customized true
+ * @customizations
+ *   - Uses `useTheme()` hook for automatic dark/light mode switching
+ *   - Upstream requires manual `theme` prop; vid0 auto-detects from app theme
+ *   - Adds `[&>pre]:!bg-background` for consistent backgrounds across themes
+ *   - SSR fallback renders plain code block before hydration
+ * @upgradeNotes
+ *   - Check if upstream still uses static theme prop vs auto-detection
+ *   - Preserve useTheme() integration and SSR fallback pattern
+ *   - Verify background styling classes are maintained
+ */
 "use client"
 
 import { cn } from "@/lib/utils"
+import { useTheme } from "next-themes"
 import React, { useEffect, useState } from "react"
 import { codeToHtml } from "shiki"
 
@@ -27,34 +43,31 @@ function CodeBlock({ children, className, ...props }: CodeBlockProps) {
 export type CodeBlockCodeProps = {
   code: string
   language?: string
-  theme?: string
   className?: string
 } & React.HTMLProps<HTMLDivElement>
 
 function CodeBlockCode({
   code,
   language = "tsx",
-  theme = "github-light",
   className,
   ...props
 }: CodeBlockCodeProps) {
+  const { resolvedTheme: appTheme } = useTheme()
   const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null)
 
   useEffect(() => {
     async function highlight() {
-      if (!code) {
-        setHighlightedHtml("<pre><code></code></pre>")
-        return
-      }
-
-      const html = await codeToHtml(code, { lang: language, theme })
+      const html = await codeToHtml(code, {
+        lang: language,
+        theme: appTheme === "dark" ? "github-dark" : "github-light",
+      })
       setHighlightedHtml(html)
     }
     highlight()
-  }, [code, language, theme])
+  }, [code, language, appTheme])
 
   const classNames = cn(
-    "w-full overflow-x-auto text-[13px] [&>pre]:px-4 [&>pre]:py-4",
+    "w-full overflow-x-auto text-[13px] [&>pre]:px-4 [&>pre]:py-4 [&>pre]:!bg-background",
     className
   )
 

@@ -1,12 +1,28 @@
+/**
+ * @component Message
+ * @source prompt-kit
+ * @upstream https://prompt-kit.com/docs/message
+ * @customized true
+ * @customizations
+ *   - Uses `next/dynamic` for Markdown import (code-splitting)
+ *   - Removes redundant `TooltipProvider` wrapper in `MessageAction`
+ *   - vid0 uses app-level TooltipProvider, reducing bundle size
+ *   - Upstream wraps each MessageAction with TooltipProvider (30+ instances in a chat)
+ * @upgradeNotes
+ *   - Preserve dynamic import for Markdown component
+ *   - Do NOT re-add TooltipProvider wrapper in MessageAction
+ *   - App provides TooltipProvider at root level (layout.tsx)
+ */
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { Markdown } from "./markdown"
+import dynamic from "next/dynamic"
+
+const Markdown = dynamic(() => import("./markdown").then((mod) => mod.Markdown))
 
 export type MessageProps = {
   children: React.ReactNode
@@ -106,14 +122,12 @@ const MessageAction = ({
   ...props
 }: MessageActionProps) => {
   return (
-    <TooltipProvider>
-      <Tooltip {...props}>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent side={side} className={className}>
-          {tooltip}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip {...props}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side={side} className={className}>
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
   )
 }
 

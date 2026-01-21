@@ -13,7 +13,7 @@ import {
   MessageActions,
   Message as MessageContainer,
   MessageContent,
-} from "@/components/prompt-kit/message"
+} from "@/components/ui/message"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/toast"
 import { isConvexId } from "@/lib/chat-store/types"

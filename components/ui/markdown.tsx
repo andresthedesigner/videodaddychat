@@ -1,10 +1,33 @@
+/**
+ * @component Markdown
+ * @source prompt-kit
+ * @upstream https://prompt-kit.com/docs/markdown
+ * @customized true
+ * @customizations
+ *   - Uses `LinkMarkdown` component for custom link handling with previews
+ *   - Integrates `ButtonCopy` for one-click code copying in code blocks
+ *   - Adds `CodeBlockGroup` header with language label display
+ *   - Uses `marked.lexer()` for block-level parsing optimization
+ *   - Per-block memoization via `MemoizedMarkdownBlock` for better performance
+ *   - Upstream has basic code/link handling; vid0 has enhanced UX features
+ * @upgradeNotes
+ *   - Preserve LinkMarkdown, ButtonCopy, and CodeBlockGroup integrations
+ *   - Maintain per-block memoization pattern for performance
+ *   - Verify INITIAL_COMPONENTS customizations are not overwritten
+ */
+import { LinkMarkdown } from "@/app/components/chat/link-markdown"
 import { cn } from "@/lib/utils"
 import { marked } from "marked"
 import { memo, useId, useMemo } from "react"
 import ReactMarkdown, { Components } from "react-markdown"
 import remarkBreaks from "remark-breaks"
 import remarkGfm from "remark-gfm"
-import { CodeBlock, CodeBlockCode } from "./code-block"
+import { ButtonCopy } from "../common/button-copy"
+import {
+  CodeBlock,
+  CodeBlockCode,
+  CodeBlockGroup,
+} from "./code-block"
 
 export type MarkdownProps = {
   children: string
@@ -48,8 +71,27 @@ const INITIAL_COMPONENTS: Partial<Components> = {
 
     return (
       <CodeBlock className={className}>
+        <CodeBlockGroup className="flex h-9 items-center justify-between px-4">
+          <div className="text-muted-foreground py-1 pr-2 font-mono text-xs">
+            {language}
+          </div>
+        </CodeBlockGroup>
+        <div className="sticky top-16 lg:top-0">
+          <div className="absolute right-0 bottom-0 flex h-9 items-center pr-1.5">
+            <ButtonCopy code={children as string} />
+          </div>
+        </div>
         <CodeBlockCode code={children as string} language={language} />
       </CodeBlock>
+    )
+  },
+  a: function AComponent({ href, children, ...props }) {
+    if (!href) return <span {...props}>{children}</span>
+
+    return (
+      <LinkMarkdown href={href} {...props}>
+        {children}
+      </LinkMarkdown>
     )
   },
   pre: function PreComponent({ children }) {

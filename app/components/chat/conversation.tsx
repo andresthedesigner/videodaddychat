@@ -1,9 +1,9 @@
 import {
   ChatContainerContent,
   ChatContainerRoot,
-} from "@/components/prompt-kit/chat-container"
-import { Loader } from "@/components/prompt-kit/loader"
-import { ScrollButton } from "@/components/prompt-kit/scroll-button"
+} from "@/components/ui/chat-container"
+import { Loader } from "@/components/ui/loader"
+import { ScrollButton } from "@/components/ui/scroll-button"
 import { ExtendedMessageAISDK } from "@/lib/chat-store/messages/api"
 import { Message as MessageType } from "@ai-sdk/react"
 import { useState } from "react"
@@ -80,7 +80,7 @@ export function Conversation({
             messages.length > 0 &&
             messages[messages.length - 1].role === "user" && (
               <div className="group min-h-scroll-anchor flex w-full max-w-3xl flex-col items-start gap-2 px-6 pb-2">
-                <Loader />
+                <Loader variant="chat" />
               </div>
             )}
           <div className="absolute bottom-0 flex w-full max-w-3xl flex-1 items-end justify-end gap-4 px-6 pb-2">

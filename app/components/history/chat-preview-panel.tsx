@@ -1,4 +1,4 @@
-import { MessageContent } from "@/components/prompt-kit/message"
+import { MessageContent } from "@/components/ui/message"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react"
