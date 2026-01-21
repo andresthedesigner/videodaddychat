@@ -1,10 +1,16 @@
-import * as React from "react"
-import type { SVGProps } from "react"
+import { forwardRef, type SVGProps } from "react"
 
-export function Vid0Icon(props: SVGProps<SVGSVGElement>) {
-  return (
+export interface Vid0IconProps extends SVGProps<SVGSVGElement> {
+  size?: number | string
+}
+
+export const Vid0Icon = forwardRef<SVGSVGElement, Vid0IconProps>(
+  ({ size = 24, width, height, ...props }, ref) => (
     <svg
+      ref={ref}
       xmlns="http://www.w3.org/2000/svg"
+      width={width ?? size}
+      height={height ?? size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -18,4 +24,8 @@ export function Vid0Icon(props: SVGProps<SVGSVGElement>) {
       <polygon points="10 8 16 12 10 16" fill="currentColor" stroke="none" />
     </svg>
   )
-}
+)
+
+Vid0Icon.displayName = "Vid0Icon"
+
+export default Vid0Icon

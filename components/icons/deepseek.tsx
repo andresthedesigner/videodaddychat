@@ -1,13 +1,17 @@
-import * as React from "react"
-import type { SVGProps } from "react"
+import { forwardRef, type SVGProps } from "react"
 
-export default function DeepSeekIcon(props: SVGProps<SVGSVGElement>) {
-  return (
+export interface DeepseekIconProps extends SVGProps<SVGSVGElement> {
+  size?: number | string
+}
+
+export const DeepseekIcon = forwardRef<SVGSVGElement, DeepseekIconProps>(
+  ({ size = 24, width, height, ...props }, ref) => (
     <svg
-      width={24}
-      height={24}
-      viewBox="0 0 24 24"
+      ref={ref}
       xmlns="http://www.w3.org/2000/svg"
+      width={width ?? size}
+      height={height ?? size}
+      viewBox="0 0 24 24"
       fill="none"
       {...props}
     >
@@ -17,4 +21,8 @@ export default function DeepSeekIcon(props: SVGProps<SVGSVGElement>) {
       />
     </svg>
   )
-}
+)
+
+DeepseekIcon.displayName = "DeepseekIcon"
+
+export default DeepseekIcon

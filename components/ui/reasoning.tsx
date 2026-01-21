@@ -17,7 +17,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { ChevronDownIcon } from "lucide-react"
+import { CaretDown } from "@phosphor-icons/react"
 import React, {
   createContext,
   useContext,
@@ -125,7 +125,7 @@ function ReasoningTrigger({
           isOpen ? "rotate-180" : ""
         )}
       >
-        <ChevronDownIcon className="size-4" />
+        <CaretDown className="size-4" />
       </div>
     </button>
   )

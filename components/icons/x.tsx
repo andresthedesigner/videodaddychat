@@ -1,11 +1,18 @@
-export default function XIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
+import { forwardRef, type SVGProps } from "react"
+
+export interface XIconProps extends SVGProps<SVGSVGElement> {
+  size?: number | string
+}
+
+export const XIcon = forwardRef<SVGSVGElement, XIconProps>(
+  ({ size = 24, width, height, ...props }, ref) => (
     <svg
+      ref={ref}
       role="img"
-      viewBox="0 0 24 24"
-      width={24}
-      height={24}
       xmlns="http://www.w3.org/2000/svg"
+      width={width ?? size}
+      height={height ?? size}
+      viewBox="0 0 24 24"
       fill="none"
       {...props}
     >
@@ -18,4 +25,8 @@ export default function XIcon(props: React.SVGProps<SVGSVGElement>) {
       />
     </svg>
   )
-}
+)
+
+XIcon.displayName = "XIcon"
+
+export default XIcon

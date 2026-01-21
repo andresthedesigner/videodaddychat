@@ -17,7 +17,7 @@ import {
   NotePencilIcon,
   X,
 } from "@phosphor-icons/react"
-import { Pin } from "lucide-react"
+import { Pin } from "@/lib/icons"
 import { useParams, useRouter } from "next/navigation"
 import { useMemo } from "react"
 import { HistoryTrigger } from "../../history/history-trigger"

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { ThumbsDown, ThumbsUp, X } from "lucide-react"
+import { ThumbsDown, ThumbsUp, X } from "@phosphor-icons/react"
 
 type FeedbackBarProps = {
   className?: string

@@ -9,11 +9,11 @@ import {
 import { cn } from "@/lib/utils"
 import {
   CheckCircle,
-  ChevronDown,
-  Loader2,
-  Settings,
+  CaretDown,
+  SpinnerGap,
+  Gear,
   XCircle,
-} from "lucide-react"
+} from "@phosphor-icons/react"
 import { useState } from "react"
 
 export type ToolPart = {
@@ -43,15 +43,15 @@ const Tool = ({ toolPart, defaultOpen = false, className }: ToolProps) => {
   const getStateIcon = () => {
     switch (state) {
       case "input-streaming":
-        return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+        return <SpinnerGap className="h-4 w-4 animate-spin text-blue-500" />
       case "input-available":
-        return <Settings className="h-4 w-4 text-orange-500" />
+        return <Gear className="h-4 w-4 text-orange-500" />
       case "output-available":
         return <CheckCircle className="h-4 w-4 text-green-500" />
       case "output-error":
         return <XCircle className="h-4 w-4 text-red-500" />
       default:
-        return <Settings className="text-muted-foreground h-4 w-4" />
+        return <Gear className="text-muted-foreground h-4 w-4" />
     }
   }
 
@@ -146,7 +146,7 @@ const Tool = ({ toolPart, defaultOpen = false, className }: ToolProps) => {
               </span>
               {getStateBadge()}
             </div>
-            <ChevronDown className={cn("h-4 w-4", isOpen && "rotate-180")} />
+            <CaretDown className={cn("h-4 w-4", isOpen && "rotate-180")} />
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent

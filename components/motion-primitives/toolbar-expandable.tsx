@@ -5,7 +5,7 @@ import useMeasure from 'react-use-measure';
 import { AnimatePresence, motion, MotionConfig } from 'motion/react';
 import { cn } from '@/lib/utils';
 import useClickOutside from '@/hooks/useClickOutside';
-import { Folder, MessageCircle, User, WalletCards } from 'lucide-react';
+import { Folder, ChatCircle, User, Wallet } from '@phosphor-icons/react';
 
 const transition = {
   type: 'spring' as const,
@@ -36,7 +36,7 @@ const ITEMS = [
   {
     id: 2,
     label: 'Messages',
-    title: <MessageCircle className='h-5 w-5' />,
+    title: <ChatCircle className='h-5 w-5' />,
     content: (
       <div className='flex flex-col space-y-4'>
         <div className='text-zinc-700'>You have 3 new messages.</div>
@@ -74,7 +74,7 @@ const ITEMS = [
   {
     id: 4,
     label: 'Wallet',
-    title: <WalletCards className='h-5 w-5' />,
+    title: <Wallet className='h-5 w-5' />,
     content: (
       <div className='flex flex-col space-y-4'>
         <div className='flex flex-col text-zinc-700'>

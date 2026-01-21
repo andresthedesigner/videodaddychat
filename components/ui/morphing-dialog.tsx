@@ -19,7 +19,7 @@ import {
 } from 'motion/react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
-import { XIcon } from 'lucide-react';
+import { X } from '@phosphor-icons/react';
 import useClickOutside from '@/hooks/useClickOutside';
 
 // Hydration-safe hook using useSyncExternalStore (React 19 pattern)
@@ -410,7 +410,7 @@ function MorphingDialogClose({
       exit='exit'
       variants={variants}
     >
-      {children || <XIcon size={24} />}
+      {children || <X size={24} />}
     </motion.button>
   );
 }
