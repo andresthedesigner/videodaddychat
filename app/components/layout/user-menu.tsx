@@ -112,7 +112,7 @@ export function UserMenu({ variant = "header" }: UserMenuProps) {
                     {user?.display_name}
                   </span>
                   <span className="text-muted-foreground truncate text-xs">
-                    Plus
+                    {user?.premium ? "Plus" : "Free"}
                   </span>
                 </div>
                 <CaretUpDown className="text-muted-foreground ml-auto size-4" />
