@@ -26,7 +26,7 @@ import { useModel } from "@/lib/model-store/provider"
 import { cn } from "@/lib/utils"
 import { KeyIcon, PlusIcon } from "@phosphor-icons/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Loader2, Trash2 } from "lucide-react"
+import { SpinnerGap, Trash } from "@phosphor-icons/react"
 import { useState } from "react"
 
 type Provider = {
@@ -308,7 +308,7 @@ export function ByokSection() {
                       deleteMutation.isPending || saveMutation.isPending
                     }
                   >
-                    <Trash2 className="mr-1 size-4" />
+                    <Trash className="mr-1 size-4" />
                     Delete
                   </Button>
                 )}
@@ -320,7 +320,7 @@ export function ByokSection() {
                   disabled={saveMutation.isPending || deleteMutation.isPending}
                 >
                   {saveMutation.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
+                    <SpinnerGap className="size-4 animate-spin" />
                   ) : (
                     "Save"
                   )}
@@ -349,7 +349,7 @@ export function ByokSection() {
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
+                <SpinnerGap className="mr-2 size-4 animate-spin" />
               ) : null}
               Delete
             </AlertDialogAction>

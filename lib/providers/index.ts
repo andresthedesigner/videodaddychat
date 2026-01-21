@@ -15,8 +15,8 @@ import Xai from "@/components/icons/xai"
 export type Provider = {
   id: string
   name: string
-  available: boolean
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+  available?: boolean
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement> & { size?: number | string }>
 }
 
 export const PROVIDERS: Provider[] = [

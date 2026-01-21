@@ -16,7 +16,7 @@ import {
   TrashSimple,
   X,
 } from "@phosphor-icons/react"
-import { Pin, PinOff } from "lucide-react"
+import { Pin, PinOff } from "@/lib/icons"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import React, { useCallback, useMemo, useState } from "react"

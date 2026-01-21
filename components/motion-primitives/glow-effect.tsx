@@ -142,7 +142,7 @@ export function GlowEffect({
       animate={animations[mode]}
       className={cn(
         'pointer-events-none absolute inset-0 h-full w-full',
-        'scale-[var(--scale)] transform-gpu',
+        'scale-(--scale) transform-gpu',
         getBlurClass(blur),
         className
       )}

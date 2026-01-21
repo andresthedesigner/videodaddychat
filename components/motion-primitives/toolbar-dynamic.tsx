@@ -2,7 +2,7 @@
 import React, { useRef, useState } from 'react';
 import { motion, MotionConfig } from 'motion/react';
 import useClickOutside from '@/hooks/useClickOutside';
-import { ArrowLeft, Search, User } from 'lucide-react';
+import { ArrowLeft, MagnifyingGlass, User } from '@phosphor-icons/react';
 
 const transition = {
   type: 'spring' as const,
@@ -63,7 +63,7 @@ export default function ToolbarDynamic() {
                     onClick={() => setIsOpen(true)}
                     ariaLabel='Search notes'
                   >
-                    <Search className='h-5 w-5' />
+                    <MagnifyingGlass className='h-5 w-5' />
                   </Button>
                 </div>
               ) : (

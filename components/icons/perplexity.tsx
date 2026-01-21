@@ -1,12 +1,16 @@
-import * as React from "react"
-import type { SVGProps } from "react"
+import { forwardRef, type SVGProps } from "react"
 
-export default function PerplexityIcon(props: SVGProps<SVGSVGElement>) {
-  return (
+export interface PerplexityIconProps extends SVGProps<SVGSVGElement> {
+  size?: number | string
+}
+
+export const PerplexityIcon = forwardRef<SVGSVGElement, PerplexityIconProps>(
+  ({ size = 24, width, height, ...props }, ref) => (
     <svg
-      width={24}
-      height={24}
+      ref={ref}
       xmlns="http://www.w3.org/2000/svg"
+      width={width ?? size}
+      height={height ?? size}
       viewBox="0 0 512 509.64"
       shapeRendering="geometricPrecision"
       textRendering="geometricPrecision"
@@ -24,4 +28,8 @@ export default function PerplexityIcon(props: SVGProps<SVGSVGElement>) {
       />
     </svg>
   )
-}
+)
+
+PerplexityIcon.displayName = "PerplexityIcon"
+
+export default PerplexityIcon

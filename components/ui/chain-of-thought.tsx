@@ -6,7 +6,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
-import { ChevronDown, Circle } from "lucide-react"
+import { CaretDown, Circle } from "@phosphor-icons/react"
 import React from "react"
 
 export type ChainOfThoughtItemProps = React.ComponentProps<"div">
@@ -54,7 +54,7 @@ export const ChainOfThoughtTrigger = ({
             {leftIcon}
           </span>
           {swapIconOnHover && (
-            <ChevronDown className="absolute size-4 opacity-0 transition-opacity group-hover:opacity-100 group-data-[state=open]:rotate-180" />
+            <CaretDown className="absolute size-4 opacity-0 transition-opacity group-hover:opacity-100 group-data-[state=open]:rotate-180" />
           )}
         </span>
       ) : (
@@ -65,7 +65,7 @@ export const ChainOfThoughtTrigger = ({
       <span>{children}</span>
     </div>
     {!leftIcon && (
-      <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+      <CaretDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
     )}
   </CollapsibleTrigger>
 )

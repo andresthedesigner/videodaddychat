@@ -17,7 +17,7 @@
 
 import { TextShimmer } from "@/components/ui/text-shimmer"
 import { cn } from "@/lib/utils"
-import { ChevronRight } from "lucide-react"
+import { CaretRight } from "@phosphor-icons/react"
 
 type ThinkingBarProps = {
   className?: string
@@ -43,7 +43,7 @@ export function ThinkingBar({
           className="flex items-center gap-1 text-sm transition-opacity hover:opacity-80"
         >
           <TextShimmer className="font-medium">{text}</TextShimmer>
-          <ChevronRight className="text-muted-foreground size-4" />
+          <CaretRight className="text-muted-foreground size-4" />
         </button>
       ) : (
         <TextShimmer className="cursor-default font-medium">{text}</TextShimmer>

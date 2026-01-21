@@ -57,6 +57,11 @@ function CodeBlockCode({
 
   useEffect(() => {
     async function highlight() {
+      // Guard against undefined/null code
+      if (!code) {
+        setHighlightedHtml(null)
+        return
+      }
       const html = await codeToHtml(code, {
         lang: language,
         theme: appTheme === "dark" ? "github-dark" : "github-light",
@@ -81,7 +86,7 @@ function CodeBlockCode({
   ) : (
     <div className={classNames} {...props}>
       <pre>
-        <code>{code}</code>
+        <code>{code ?? ""}</code>
       </pre>
     </div>
   )

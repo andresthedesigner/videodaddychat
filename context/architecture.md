@@ -1,7 +1,7 @@
 # System Architecture
 
 > **Last Updated:** January 2026  
-> **Status:** Active development (migrating from Supabase to Convex)
+> **Status:** Active development
 
 ## Overview
 
@@ -61,8 +61,8 @@ vid0 is an AI-powered platform for YouTube content creators, providing data-driv
 | Component | Purpose | Technology |
 |-----------|---------|------------|
 | **API Routes** | REST endpoints, streaming | Next.js Route Handlers |
-| **Database** | Data persistence, real-time | Convex (migrating from Supabase) |
-| **Authentication** | User identity, sessions | Clerk (planned, currently Supabase Auth) |
+| **Database** | Data persistence, real-time | Convex |
+| **Authentication** | User identity, sessions | Clerk |
 | **AI Orchestration** | Multi-provider LLM routing | Vercel AI SDK |
 
 ## Data Flow
@@ -137,7 +137,7 @@ const result = streamText({
   system: effectiveSystemPrompt,
   messages: messages,
   onFinish: async ({ response }) => {
-    await storeAssistantMessage({ supabase, chatId, messages: response.messages })
+    await storeAssistantMessage({ chatId, messages: response.messages })
   },
 })
 
@@ -205,8 +205,13 @@ lib/                   # Shared utilities
 ├── chat-store/       # Chat state management
 ├── models/          # AI model definitions
 ├── openproviders/   # AI provider abstraction
-├── supabase/        # Database client (migrating)
 └── user-store/      # User state management
+
+convex/               # Convex database
+├── schema.ts        # Database schema
+├── chats.ts         # Chat operations
+├── messages.ts      # Message operations
+└── users.ts         # User operations
 
 components/           # Shadcn UI components (shared)
 ```
@@ -238,9 +243,8 @@ components/           # Shadcn UI components (shared)
 
 | Service | Purpose | Status |
 |---------|---------|--------|
-| **Supabase** | Database, Auth | Current (migrating) |
-| **Convex** | Database, AI/RAG | Planned |
-| **Clerk** | Authentication | Planned |
+| **Convex** | Database, real-time, AI/RAG | Active |
+| **Clerk** | Authentication | Active |
 | **Flowglad** | Payments | Planned |
 | **Vercel** | Hosting, Edge | Active |
 

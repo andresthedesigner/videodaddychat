@@ -70,7 +70,7 @@ import { describe, it, expect, vi } from "vitest"
 
 describe("validateAndTrackUsage", () => {
   describe("when user is authenticated", () => {
-    it("should return supabase client when under limit", async () => {
+    it("should validate usage when under limit", async () => {
       // Arrange
       const mockUser = { id: "user-123", daily_message_count: 5 }
       
@@ -225,7 +225,7 @@ describe("YouTube Data API", () => {
 
 ### When to Mock
 
-- ✅ External services in unit tests (Supabase, AI providers)
+- ✅ External services in unit tests (Convex, AI providers)
 - ✅ Time-dependent functions (`Date.now()`, timers)
 - ✅ Environment-specific code (browser APIs)
 
@@ -238,14 +238,11 @@ describe("YouTube Data API", () => {
 ### Mock Patterns
 
 ```typescript
-// Mock external services
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: vi.fn(() => ({
-    from: vi.fn(() => ({
-      select: vi.fn(),
-      insert: vi.fn(),
-    })),
-  })),
+// Mock Convex client
+vi.mock("convex/react", () => ({
+  useQuery: vi.fn(),
+  useMutation: vi.fn(() => vi.fn()),
+  useConvex: vi.fn(),
 }))
 
 // Mock time
@@ -253,7 +250,7 @@ vi.useFakeTimers()
 vi.setSystemTime(new Date("2026-01-14"))
 
 // Mock environment
-vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://test.supabase.co")
+vi.stubEnv("NEXT_PUBLIC_CONVEX_URL", "https://test.convex.cloud")
 ```
 
 ## Running Tests

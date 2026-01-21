@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { cva, type VariantProps } from "class-variance-authority"
-import { AlertCircle, AlertTriangle, Info } from "lucide-react"
+import { WarningCircle, Warning, Info } from "@phosphor-icons/react"
 import React from "react"
 
 const systemMessageVariants = cva(
@@ -85,9 +85,9 @@ export function SystemMessage({
 
     switch (variant) {
       case "error":
-        return <AlertCircle className="size-4" />
+        return <WarningCircle className="size-4" />
       case "warning":
-        return <AlertTriangle className="size-4" />
+        return <Warning className="size-4" />
       default:
         return <Info className="size-4" />
     }

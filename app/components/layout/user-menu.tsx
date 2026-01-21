@@ -9,23 +9,42 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar"
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useChats } from "@/lib/chat-store/chats/provider"
+import { useMessages } from "@/lib/chat-store/messages/provider"
+import { clearAllIndexedDBStores } from "@/lib/chat-store/persist"
 import { useUser } from "@/lib/user-store/provider"
-import { GithubLogoIcon } from "@phosphor-icons/react"
+import { useClerk } from "@clerk/nextjs"
+import { CaretUpDown, SignOut } from "@phosphor-icons/react"
 import { useState } from "react"
+import { toast } from "@/components/ui/toast"
 import { AppInfoTrigger } from "./app-info/app-info-trigger"
 import { FeedbackTrigger } from "./feedback/feedback-trigger"
 import { SettingsTrigger } from "./settings/settings-trigger"
 
-export function UserMenu() {
+interface UserMenuProps {
+  variant?: "header" | "sidebar"
+}
+
+export function UserMenu({ variant = "header" }: UserMenuProps) {
   const { user } = useUser()
+  const { signOut } = useClerk()
+  const { resetChats } = useChats()
+  const { resetMessages } = useMessages()
   const [isMenuOpen, setMenuOpen] = useState(false)
   const [isSettingsOpen, setSettingsOpen] = useState(false)
 
   if (!user) return null
+
+  const isSidebar = variant === "sidebar"
 
   const handleSettingsOpenChange = (isOpen: boolean) => {
     setSettingsOpen(isOpen)
@@ -34,8 +53,94 @@ export function UserMenu() {
     }
   }
 
+  const handleSignOut = async () => {
+    try {
+      await resetMessages()
+      await resetChats()
+      await clearAllIndexedDBStores()
+      await signOut({ redirectUrl: "/" })
+    } catch (e) {
+      console.error("Sign out failed:", e)
+      toast({ title: "Failed to sign out", status: "error" })
+    }
+  }
+
+  // Shared dropdown menu content
+  const menuContent = (
+    <>
+      <DropdownMenuItem className="flex flex-col items-start gap-0 no-underline hover:bg-transparent focus:bg-transparent">
+        <span>{user?.display_name}</span>
+        <span className="text-muted-foreground max-w-full truncate">
+          {user?.email}
+        </span>
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <SettingsTrigger onOpenChange={handleSettingsOpenChange} />
+      <FeedbackTrigger />
+      <AppInfoTrigger />
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        onClick={handleSignOut}
+        className="flex items-center gap-2"
+      >
+        <SignOut className="size-4" />
+        <span>Sign out</span>
+      </DropdownMenuItem>
+    </>
+  )
+
+  // Sidebar variant using Shadcn SidebarMenu primitives
+  if (isSidebar) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <DropdownMenu
+            open={isMenuOpen}
+            onOpenChange={setMenuOpen}
+            modal={false}
+          >
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton size="lg" className="w-full">
+                <Avatar className="size-8 bg-emerald-600">
+                  <AvatarImage src={user?.profile_image ?? undefined} />
+                  <AvatarFallback className="bg-emerald-600 text-sm text-white">
+                    {user?.display_name?.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">
+                    {user?.display_name}
+                  </span>
+                  <span className="text-muted-foreground truncate text-xs">
+                    {user?.premium ? "Plus" : "Free"}
+                  </span>
+                </div>
+                <CaretUpDown className="text-muted-foreground ml-auto size-4" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="top"
+              align="start"
+              className="w-(--radix-popper-anchor-width)"
+              onCloseAutoFocus={(e) => e.preventDefault()}
+              onInteractOutside={(e) => {
+                if (isSettingsOpen) {
+                  e.preventDefault()
+                  return
+                }
+                setMenuOpen(false)
+              }}
+            >
+              {menuContent}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
+
+  // Header variant (original implementation)
   return (
-    // fix shadcn/ui / radix bug when dialog into dropdown menu
     <DropdownMenu open={isMenuOpen} onOpenChange={setMenuOpen} modal={false}>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -61,28 +166,7 @@ export function UserMenu() {
           setMenuOpen(false)
         }}
       >
-        <DropdownMenuItem className="flex flex-col items-start gap-0 no-underline hover:bg-transparent focus:bg-transparent">
-          <span>{user?.display_name}</span>
-          <span className="text-muted-foreground max-w-full truncate">
-            {user?.email}
-          </span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <SettingsTrigger onOpenChange={handleSettingsOpenChange} />
-        <FeedbackTrigger />
-        <AppInfoTrigger />
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <a
-            href="https://github.com/ibelick/zola"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2"
-          >
-            <GithubLogoIcon className="size-4" />
-            <span>GitHub (Zola)</span>
-          </a>
-        </DropdownMenuItem>
+        {menuContent}
       </DropdownMenuContent>
     </DropdownMenu>
   )

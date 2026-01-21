@@ -98,7 +98,12 @@ export function ProjectView({ projectId }: ProjectViewProps) {
     id: `project-${projectId}-${currentChatId}`,
     api: API_ROUTE_CHAT,
     initialMessages: [],
-    onFinish: cacheAndAddMessage,
+    onFinish: (m) => {
+      // Pass currentChatId explicitly to handle stale closures during chat creation
+      if (currentChatId) {
+        cacheAndAddMessage(m, currentChatId)
+      }
+    },
     onError: handleError,
   })
 
@@ -259,7 +264,8 @@ export function ProjectView({ projectId }: ProjectViewProps) {
       handleSubmit(undefined, options)
       setMessages((prev) => prev.filter((msg) => msg.id !== optimisticId))
       cleanupOptimisticAttachments(optimisticMessage.experimental_attachments)
-      cacheAndAddMessage(optimisticMessage)
+      // Pass currentChatId explicitly to handle stale closures during chat creation
+      cacheAndAddMessage(optimisticMessage, currentChatId)
 
       // Bump existing chats to top (non-blocking, after submit)
       if (messages.length > 0) {

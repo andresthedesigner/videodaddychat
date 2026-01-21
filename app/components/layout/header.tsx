@@ -66,7 +66,7 @@ export function Header({ hasSidebar }: { hasSidebar: boolean }) {
               {!isMultiModelEnabled && <DialogPublish />}
               <ButtonNewChat />
               {!hasSidebar && <HistoryTrigger hasSidebar={hasSidebar} />}
-              <UserMenu />
+              {!hasSidebar && <UserMenu />}
             </div>
           )}
         </div>

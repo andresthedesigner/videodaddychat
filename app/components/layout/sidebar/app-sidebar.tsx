@@ -13,15 +13,15 @@ import {
 import { useChats } from "@/lib/chat-store/chats/provider"
 import {
   ChatTeardropText,
-  GithubLogo,
   MagnifyingGlass,
   NotePencilIcon,
   X,
 } from "@phosphor-icons/react"
-import { Pin } from "lucide-react"
+import { Pin } from "@/lib/icons"
 import { useParams, useRouter } from "next/navigation"
 import { useMemo } from "react"
 import { HistoryTrigger } from "../../history/history-trigger"
+import { UserMenu } from "../user-menu"
 import { SidebarList } from "./sidebar-list"
 import { SidebarProject } from "./sidebar-project"
 
@@ -130,25 +130,8 @@ export function AppSidebar() {
           )}
         </ScrollArea>
       </SidebarContent>
-      <SidebarFooter className="border-border/40 mb-2 border-t p-3">
-        <a
-          href="https://github.com/ibelick/zola"
-          className="hover:bg-muted flex items-center gap-2 rounded-md p-2"
-          target="_blank"
-          aria-label="Built on Zola - star the repo on GitHub"
-        >
-          <div className="rounded-full border p-1">
-            <GithubLogo className="size-4" />
-          </div>
-          <div className="flex flex-col">
-            <div className="text-sidebar-foreground text-sm font-medium">
-              Built on Zola
-            </div>
-            <div className="text-sidebar-foreground/70 text-xs">
-              Star the original repo!
-            </div>
-          </div>
-        </a>
+      <SidebarFooter className="border-border/40 border-t p-2">
+        <UserMenu variant="sidebar" />
       </SidebarFooter>
     </Sidebar>
   )
