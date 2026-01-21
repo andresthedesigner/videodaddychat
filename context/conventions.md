@@ -241,17 +241,18 @@ try {
 ```typescript
 // ✅ DO: Explain non-obvious business logic
 // If editing, delete messages from cutoff BEFORE saving the new user message
-if (supabase && editCutoffTimestamp) {
-  await supabase
-    .from("messages")
-    .delete()
-    .eq("chat_id", chatId)
-    .gte("created_at", editCutoffTimestamp)
+if (ctx && editCutoffTimestamp) {
+  await ctx.db
+    .query("messages")
+    .withIndex("by_chat_id", (q) => q.eq("chatId", chatId))
+    .filter((q) => q.gte(q.field("createdAt"), editCutoffTimestamp))
+    .collect()
+    .then((msgs) => Promise.all(msgs.map((m) => ctx.db.delete(m._id))))
 }
 
 // ✅ DO: Mark TODOs with context
-// TODO: Migrate to Convex - this query pattern will change
-const messages = await supabase.from("messages").select("*")
+// TODO: Add pagination for large message histories
+const messages = await ctx.db.query("messages").collect()
 
 // ❌ DON'T: State the obvious
 // Increment the counter
@@ -267,14 +268,14 @@ counter++
  * @param userId - The user's ID
  * @param model - The AI model being used
  * @param isAuthenticated - Whether the user is logged in
- * @returns Supabase client if valid, throws if rate limited
+ * @returns true if valid, throws if rate limited
  * @throws {Error} When daily limit exceeded
  */
 export async function validateAndTrackUsage({
   userId,
   model,
   isAuthenticated,
-}: ValidationParams): Promise<SupabaseClient | null> {
+}: ValidationParams): Promise<boolean> {
   // implementation
 }
 ```

@@ -25,7 +25,7 @@ lib/
 │   ├── index.ts          # Factory pattern (gold standard)
 │   ├── provider-map.ts   # Model → provider mapping
 │   └── types.ts
-├── supabase/         # Database client (migrating to Convex)
+├── mcp/              # MCP server loading utilities
 ├── tanstack-query/   # Query client provider
 ├── config.ts         # Centralized constants (gold standard)
 └── utils.ts          # General utilities
@@ -108,7 +108,7 @@ export const SYSTEM_PROMPT_DEFAULT = `...`
 ├─────────────────────────────────────────┤
 │       IndexedDB (local persistence)     │
 ├─────────────────────────────────────────┤
-│     Supabase → Convex (remote DB)       │
+│          Convex (remote DB)             │
 └─────────────────────────────────────────┘
 ```
 
@@ -138,31 +138,36 @@ export const CLAUDE_MODELS: Model[] = [
 | `types.ts` | TypeScript types |
 | `utils.ts` | Helper functions |
 
-## Migration Notes
+## Convex Integration
 
-<!-- TODO: Migrate from Supabase to Convex -->
-
-### Supabase → Convex Migration
-
-1. [ ] Create Convex schema (convex/schema.ts)
-2. [ ] Create Convex functions (convex/functions/)
-3. [ ] Update lib/chat-store to use Convex queries/mutations
-4. [ ] Migrate lib/supabase clients to Convex client
-5. [ ] Update API routes to use Convex
-6. [ ] Remove Supabase dependencies
-
-### New Convex Structure
+Database operations are handled by Convex. See `convex/` directory for:
 
 ```
-convex/               # New directory (TODO)
+convex/
 ├── schema.ts         # Database schema
 ├── chats.ts          # Chat functions
 ├── messages.ts       # Message functions
 ├── users.ts          # User functions
+├── projects.ts       # Project functions
 └── _generated/       # Auto-generated types
+```
+
+### Using Convex in Components
+
+```typescript
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+
+// Query data
+const chats = useQuery(api.chats.list, { userId })
+
+// Mutate data
+const createChat = useMutation(api.chats.create)
+await createChat({ title: "New Chat", userId })
 ```
 
 ## Notes
 
-<!-- TODO: Document RAG implementation with Convex -->
-<!-- TODO: Add embedding generation for vector search -->
+- Auth handled by Clerk (see `app/auth/CLAUDE.md`)
+- Database operations use Convex reactive queries
+- Local persistence for drafts uses IndexedDB via `idb-keyval`

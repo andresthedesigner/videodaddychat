@@ -28,25 +28,29 @@ api/
 
 ```typescript
 import { streamText } from "ai"
+import { auth } from "@clerk/nextjs/server"
 
 export async function POST(req: Request) {
-  // 1. Validate request
-  const { messages, chatId, userId, model } = await req.json()
-  if (!messages || !chatId || !userId) {
+  // 1. Validate auth
+  const { userId } = await auth()
+  
+  // 2. Validate request
+  const { messages, chatId, model } = await req.json()
+  if (!messages || !chatId) {
     return new Response(JSON.stringify({ error: "Missing information" }), { status: 400 })
   }
 
-  // 2. Validate usage/auth
-  const supabase = await validateAndTrackUsage({ userId, model, isAuthenticated })
+  // 3. Validate usage
+  await validateAndTrackUsage({ userId, model, isAuthenticated: !!userId })
 
-  // 3. Stream response
+  // 4. Stream response
   const result = streamText({
     model: modelConfig.apiSdk(apiKey, { enableSearch }),
     system: systemPrompt,
     messages,
     onFinish: async ({ response }) => {
-      // Store assistant message to DB
-      await storeAssistantMessage({ supabase, chatId, messages: response.messages })
+      // Store assistant message to Convex
+      await storeAssistantMessage({ chatId, messages: response.messages })
     },
   })
 
@@ -124,5 +128,6 @@ curl http://localhost:3000/api/models
 
 ## Notes
 
-<!-- TODO: Document Convex migration plan for API routes -->
-<!-- TODO: Add webhook handlers for Clerk/Flowglad -->
+- Database operations use Convex (see `convex/` directory)
+- Authentication handled by Clerk (see `app/auth/CLAUDE.md`)
+- Webhooks for Clerk user sync at `/api/webhooks/clerk`

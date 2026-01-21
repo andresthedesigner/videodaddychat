@@ -2,83 +2,97 @@
 
 This directory handles authentication for vid0.
 
-> ⚠️ **Migration Pending**: Currently using Supabase Auth, migrating to Clerk.
-> See `@docs/agents-research.md` for migration rationale.
+> ✅ **Migration Complete**: Using Clerk for authentication with native Convex integration.
 
 ## Current Structure
 
 ```
 auth/
-├── callback/
-│   └── route.ts      # OAuth callback handler
+├── login/
+│   └── page.tsx      # Clerk <SignIn /> component
+├── sign-up/
+│   └── page.tsx      # Clerk <SignUp /> component
 ├── error/
 │   └── page.tsx      # Auth error page
-├── login/
-│   └── actions.ts    # Server actions (signOut)
-├── login-page.tsx    # Login UI component
-└── page.tsx          # Auth page
+└── callback/         # OAuth callback (if needed)
 ```
 
-## Current Auth Flow (Supabase)
+## Auth Flow (Clerk)
 
 ```
-User → Login Page → Supabase OAuth → Callback → Session Cookie → App
+User → Login Page → Clerk Auth → JWT Token → Convex Auth → App
 ```
 
-### Server Actions Pattern
+### Integration Pattern
 
 ```typescript
-// login/actions.ts
-"use server"
+// Using Clerk auth in API routes
+import { auth } from "@clerk/nextjs/server"
 
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
-
-export async function signOut() {
-  if (!isSupabaseEnabled) {
-    // Guard: handle disabled state gracefully
-    return
+export async function POST(req: Request) {
+  const { userId } = await auth()
+  
+  if (!userId) {
+    return new Response("Unauthorized", { status: 401 })
   }
-
-  const supabase = await createClient()
-  await supabase.auth.signOut()
-  revalidatePath("/", "layout")
-  redirect("/auth/login")
+  
+  // Proceed with authenticated request
 }
 ```
 
-## Planned Migration to Clerk
+### Client-Side Auth
 
-### Why Clerk?
+```typescript
+// Using Clerk hooks in components
+import { useUser, useAuth } from "@clerk/nextjs"
 
-1. Native Convex integration (our new database)
-2. Native Flowglad integration (our payment provider)
-3. Better DX with pre-built components
-4. Supports YouTube OAuth for future analytics features
-
-### Migration Steps
-
-<!-- TODO: Implement these steps -->
-
-1. [ ] Install Clerk SDK (`@clerk/nextjs`)
-2. [ ] Add Clerk environment variables
-3. [ ] Replace `lib/supabase/server.ts` auth calls with Clerk
-4. [ ] Update middleware.ts for Clerk
-5. [ ] Replace login page with Clerk components
-6. [ ] Migrate user sessions
-7. [ ] Remove Supabase auth code
-
-### Future Clerk Structure
-
+function MyComponent() {
+  const { user, isLoaded } = useUser()
+  const { isSignedIn } = useAuth()
+  
+  if (!isLoaded) return <Loading />
+  if (!isSignedIn) return <SignInPrompt />
+  
+  return <AuthenticatedContent user={user} />
+}
 ```
-auth/
-├── sign-in/
-│   └── [[...sign-in]]/
-│       └── page.tsx    # Clerk <SignIn /> component
-├── sign-up/
-│   └── [[...sign-up]]/
-│       └── page.tsx    # Clerk <SignUp /> component
-└── callback/           # May not be needed with Clerk
+
+### Convex Integration
+
+```typescript
+// Clerk + Convex auth in convex functions
+import { v } from "convex/values"
+import { query, mutation } from "./_generated/server"
+
+export const getUser = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+    
+    return ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .first()
+  },
+})
+```
+
+## Environment Variables
+
+```bash
+# Required Clerk variables
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
+CLERK_JWT_ISSUER_DOMAIN=https://your-instance.clerk.accounts.dev
+
+# Optional: Webhook for user sync
+CLERK_WEBHOOK_SECRET=whsec_...
+
+# Auth URLs (customize if needed)
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/auth/login
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/auth/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 ```
 
 ## Security Rules
@@ -90,11 +104,12 @@ auth/
 
 ## Related Files
 
-- `middleware.ts` — Auth middleware (root level)
-- `lib/supabase/server.ts` — Server-side Supabase client
-- `lib/supabase/client.ts` — Client-side Supabase client
+- `middleware.ts` — Clerk auth middleware (root level)
+- `convex/auth.config.js` — Convex auth configuration
+- `convex/users.ts` — User operations with Clerk integration
 
 ## Notes
 
-<!-- TODO: Document Clerk setup after migration -->
-<!-- TODO: Add YouTube OAuth scope requirements for analytics -->
+- User data is synced from Clerk to Convex via webhooks
+- JWT tokens are validated by Convex using Clerk's issuer domain
+- YouTube OAuth for analytics is planned for Phase 2

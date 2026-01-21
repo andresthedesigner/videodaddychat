@@ -23,11 +23,11 @@
 │  ┌─────────────────────────┼─────────────────────────────┐  │
 │  │                  EXTERNAL SERVICES                     │  │
 │  │                                                        │  │
-│  │  ┌──────────┐  ┌──────────────┐  ┌──────────────────┐ │  │
-│  │  │ Supabase │  │  AI Providers│  │    YouTube API   │ │  │
-│  │  │ (DB/Auth)│  │  (Anthropic, │  │    (Data +       │ │  │
-│  │  │          │  │   OpenAI...) │  │    Analytics)    │ │  │
-│  │  └──────────┘  └──────────────┘  └──────────────────┘ │  │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────────┐  ┌────────────┐ │  │
+│  │  │  Convex  │  │  Clerk   │  │  AI Providers│  │ YouTube API│ │  │
+│  │  │   (DB)   │  │  (Auth)  │  │  (Anthropic, │  │   (Data +  │ │  │
+│  │  │          │  │          │  │   OpenAI...) │  │  Analytics)│ │  │
+│  │  └──────────┘  └──────────┘  └──────────────┘  └────────────┘ │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
@@ -60,11 +60,16 @@
 #### Required (Production)
 
 ```bash
-# Database (Current: Supabase)
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+# Database (Convex)
+CONVEX_DEPLOYMENT=dev:your-deployment-id
+NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
 
-# AI Providers
+# Authentication (Clerk)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
+CLERK_JWT_ISSUER_DOMAIN=https://your-instance.clerk.accounts.dev
+
+# AI Providers (at least one required)
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
 
@@ -85,16 +90,8 @@ XAI_API_KEY=...
 PERPLEXITY_API_KEY=...
 OPENROUTER_API_KEY=...
 
-# Service Role (for admin operations)
-SUPABASE_SERVICE_ROLE=eyJ...
-
-# Future: Convex
-CONVEX_DEPLOYMENT=...
-NEXT_PUBLIC_CONVEX_URL=...
-
-# Future: Clerk
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
-CLERK_SECRET_KEY=...
+# Clerk Webhook (for user sync)
+CLERK_WEBHOOK_SECRET=whsec_...
 ```
 
 #### Setting in Vercel
@@ -245,8 +242,10 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - CONVEX_DEPLOYMENT=${CONVEX_DEPLOYMENT}
+      - NEXT_PUBLIC_CONVEX_URL=${NEXT_PUBLIC_CONVEX_URL}
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - CSRF_SECRET=${CSRF_SECRET}
@@ -335,7 +334,7 @@ const config = {
   
   // Optimize images
   images: {
-    domains: ["supabase.co", "avatars.githubusercontent.com"],
+    domains: ["avatars.githubusercontent.com", "img.clerk.com"],
   },
   
   // Enable standalone output for Docker
@@ -387,7 +386,7 @@ git push --force origin main  # ⚠️ Requires confirmation
 ### Scaling Strategy
 
 1. **Horizontal**: Vercel auto-scales functions
-2. **Database**: Supabase handles connection pooling
+2. **Database**: Convex handles real-time sync and automatic scaling
 3. **AI**: Rate limiting per user prevents overload
 4. **CDN**: Static assets globally distributed
 
@@ -397,15 +396,15 @@ git push --force origin main  # ⚠️ Requires confirmation
 
 | Data | Backup Method | Frequency |
 |------|---------------|-----------|
-| Database | Supabase Point-in-Time | Continuous |
+| Database | Convex automatic backups | Continuous |
 | Code | GitHub | Every push |
 | Env vars | Secure documentation | On change |
-| User uploads | Supabase Storage | Continuous |
+| User uploads | Convex Storage | Continuous |
 
 ### Recovery Steps
 
 1. **Code issues**: Vercel instant rollback
-2. **Database corruption**: Supabase PITR restore
+2. **Database corruption**: Convex snapshot restore
 3. **API key compromise**: Rotate keys, redeploy
 4. **Service outage**: Monitor status pages, failover if configured
 
