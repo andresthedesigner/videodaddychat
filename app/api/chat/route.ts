@@ -1,9 +1,10 @@
 import { auth } from "@clerk/nextjs/server"
 import { withTracing } from "@posthog/ai/vercel"
+import { after } from "next/server"
 import { SYSTEM_PROMPT_DEFAULT } from "@/lib/config"
 import { getAllModels } from "@/lib/models"
 import { getProviderForModel } from "@/lib/openproviders/provider-map"
-import { getPostHogClient } from "@/lib/posthog"
+import { getPostHogClient, shutdownPostHog } from "@/lib/posthog"
 import type { ProviderWithoutOllama } from "@/lib/user-keys"
 import { Message as MessageAISDK, streamText, ToolSet } from "ai"
 import {
@@ -121,6 +122,15 @@ export async function POST(req: Request) {
 
     // Wrap with PostHog tracing for LLM analytics (if configured)
     const phClient = getPostHogClient()
+
+    // Schedule PostHog shutdown after streaming response completes
+    // This ensures $ai_generation events are flushed before the serverless function terminates
+    if (phClient) {
+      after(async () => {
+        await shutdownPostHog()
+      })
+    }
+
     const tracedModel = phClient
       ? withTracing(baseModel, phClient, {
           posthogDistinctId: userId,
