@@ -1,7 +1,9 @@
 import { auth } from "@clerk/nextjs/server"
+import { withTracing } from "@posthog/ai/vercel"
 import { SYSTEM_PROMPT_DEFAULT } from "@/lib/config"
 import { getAllModels } from "@/lib/models"
 import { getProviderForModel } from "@/lib/openproviders/provider-map"
+import { getPostHogClient } from "@/lib/posthog"
 import type { ProviderWithoutOllama } from "@/lib/user-keys"
 import { Message as MessageAISDK, streamText, ToolSet } from "ai"
 import {
@@ -114,8 +116,25 @@ export async function POST(req: Request) {
         )) || undefined
     }
 
+    // Create base model from config
+    const baseModel = modelConfig.apiSdk(apiKey, { enableSearch })
+
+    // Wrap with PostHog tracing for LLM analytics (if configured)
+    const phClient = getPostHogClient()
+    const tracedModel = phClient
+      ? withTracing(baseModel, phClient, {
+          posthogDistinctId: userId,
+          posthogTraceId: chatId,
+          posthogProperties: {
+            model,
+            isAuthenticated,
+            messageGroupId: message_group_id,
+          },
+        })
+      : baseModel
+
     const result = streamText({
-      model: modelConfig.apiSdk(apiKey, { enableSearch }),
+      model: tracedModel,
       system: effectiveSystemPrompt,
       messages: messages,
       tools: {} as ToolSet,
