@@ -1,7 +1,13 @@
 import { auth } from "@clerk/nextjs/server"
+import { after } from "next/server"
 import { SYSTEM_PROMPT_DEFAULT } from "@/lib/config"
 import { getAllModels } from "@/lib/models"
 import { getProviderForModel } from "@/lib/openproviders/provider-map"
+import {
+  captureGeneration,
+  flushPostHog,
+  getPostHogClient,
+} from "@/lib/posthog"
 import type { ProviderWithoutOllama } from "@/lib/user-keys"
 import { Message as MessageAISDK, streamText, ToolSet } from "ai"
 import {
@@ -114,14 +120,87 @@ export async function POST(req: Request) {
         )) || undefined
     }
 
+    // Create base model from config
+    const aiModel = modelConfig.apiSdk(apiKey, { enableSearch })
+
+    // Check if PostHog is configured for LLM analytics
+    const phClient = getPostHogClient()
+    const provider = getProviderForModel(model)
+    const startTime = Date.now()
+
+    // Schedule PostHog flush after streaming response completes
+    // This ensures $ai_generation events are flushed before the serverless function terminates
+    // Using flush() instead of shutdown() allows client reuse in warm containers
+    if (phClient) {
+      after(async () => {
+        await flushPostHog()
+      })
+    }
+
     const result = streamText({
-      model: modelConfig.apiSdk(apiKey, { enableSearch }),
+      model: aiModel,
       system: effectiveSystemPrompt,
       messages: messages,
       tools: {} as ToolSet,
       maxSteps: 10,
       onError: (err: unknown) => {
         console.error("Streaming error occurred:", err)
+
+        // Capture failed generations to PostHog for complete analytics
+        if (phClient) {
+          try {
+            const latencyMs = Date.now() - startTime
+            const errorMessage =
+              err instanceof Error ? err.message : String(err)
+            captureGeneration({
+              distinctId: userId,
+              traceId: chatId,
+              model,
+              provider,
+              input: messages,
+              output: null,
+              latencyMs,
+              isError: true,
+              errorMessage,
+              properties: {
+                isAuthenticated,
+                messageGroupId: message_group_id,
+              },
+            })
+          } catch (captureErr) {
+            console.error("[PostHog] Failed to capture error event:", captureErr)
+          }
+        }
+      },
+      onFinish: ({ text, usage }) => {
+        // Manually capture LLM generation for PostHog analytics
+        // This ensures accurate output capture (withTracing has issues with streaming)
+        if (phClient) {
+          try {
+            const latencyMs = Date.now() - startTime
+            captureGeneration({
+              distinctId: userId,
+              traceId: chatId,
+              model,
+              provider,
+              input: messages,
+              output: text,
+              inputTokens: usage?.promptTokens,
+              outputTokens: usage?.completionTokens,
+              latencyMs,
+              properties: {
+                isAuthenticated,
+                messageGroupId: message_group_id,
+              },
+            })
+          } catch (captureErr) {
+            // Analytics failure should never break the response
+            console.error(
+              "[PostHog] Failed to capture generation event:",
+              captureErr
+            )
+          }
+        }
       },
     })
 
