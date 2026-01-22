@@ -131,7 +131,7 @@ export function captureGeneration({
         : [],
       $ai_output_tokens: outputTokens,
       $ai_total_tokens: totalTokens,
-      $ai_latency: latencyMs ? latencyMs / 1000 : undefined,
+      $ai_latency: latencyMs !== undefined ? latencyMs / 1000 : undefined,
       $ai_is_error: isError ?? false,
       $ai_error: errorMessage,
       ...properties,
